@@ -33,9 +33,10 @@
 {{include "admin_compat/footer.html" .}}
 <script>
 $('.plugin-toggle').on('click', function(){
-  var id=$(this).data('id'), enable=$(this).data('enable');
+  var id=String($(this).attr('data-id')||$(this).data('id'));
+  var enable=String($(this).attr('data-enable')||$(this).data('enable'));
   $.xpost('/admin/plugins', {id:id, enable:enable}, function(code, message){
-    if(code==0){ $.alert(message); setTimeout(function(){ location.reload(); }, 400); }
+    if(code==0){ $.alert(message); setTimeout(function(){ location.reload(); }, 800); }
     else alert(message);
   });
 });

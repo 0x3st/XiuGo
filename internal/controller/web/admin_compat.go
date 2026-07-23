@@ -167,7 +167,17 @@ func (c *Controller) AdminPlugins(r *ghttp.Request) {
 			c.writeXiunoMessage(r, -1, err.Error())
 			return
 		}
-		c.writeXiunoMessage(r, 0, "已更新")
+		msg := "已更新"
+		if enable {
+			if id == "credits_admin" {
+				msg = "已启用：请打开「用户」/admin/users 查看积分列（数值来自 bbs_user.credits，默认可能为 0）"
+			} else if id == "devtools" {
+				msg = "已启用：打开任意前台页面，查看 HTML 源码底部的 xiugo-dev 注释"
+			} else if id == "hello" {
+				msg = "已启用：前台页面 HTML 源码中会有 <!-- XiuGo plugin:hello --> 注释"
+			}
+		}
+		c.writeXiunoMessage(r, 0, msg)
 		return
 	}
 	c.writeAdminCompatTemplate(r, "admin_compat/plugins.html", gview.Params{
@@ -324,6 +334,20 @@ func (c *Controller) adminCompatVerified(r *ghttp.Request) bool {
 }
 
 func (c *Controller) writeAdminCompatTemplate(r *ghttp.Request, template string, params gview.Params) {
+	if params == nil {
+		params = gview.Params{}
+	}
+	ev := &plugin.AdminRenderEvent{Template: template, Params: map[string]any{}}
+	for k, v := range params {
+		ev.Params[k] = v
+	}
+	_ = plugin.Global().Fire(r.Context(), plugin.HookAdminRender, ev)
+	for k, v := range ev.Params {
+		params[k] = v
+	}
+	if len(ev.ExtraCSS) > 0 {
+		params["PluginCSS"] = ev.ExtraCSS
+	}
 	if err := r.Response.WriteTpl(template, params); err != nil {
 		c.fail(r, err)
 	}

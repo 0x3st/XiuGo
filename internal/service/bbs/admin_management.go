@@ -212,7 +212,7 @@ func (s *Service) AdminUserList(ctx context.Context, searchType, keyword string,
 	}
 	listModel := dao.BbsUser.Ctx(ctx).
 		LeftJoin("bbs_group g", "g.gid=bbs_user.gid").
-		Fields("bbs_user.uid,bbs_user.username,bbs_user.email,bbs_user.gid,bbs_user.threads,bbs_user.posts,bbs_user.create_date,bbs_user.create_ip,g.name AS group_name").
+		Fields("bbs_user.uid,bbs_user.username,bbs_user.email,bbs_user.gid,bbs_user.threads,bbs_user.posts,bbs_user.credits,bbs_user.create_date,bbs_user.create_ip,g.name AS group_name").
 		OrderDesc("bbs_user.uid").Page(page, pageSize)
 	if keyword != "" {
 		value := any(keyword)
