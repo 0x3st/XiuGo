@@ -69,3 +69,10 @@ func TestCanReplyToClosedThread(t *testing.T) {
 		t.Fatal("an open thread should allow an otherwise-authorized ordinary group")
 	}
 }
+
+func TestHighlightKeyword(t *testing.T) {
+	got := highlightKeyword("Hello Xiuno World", "xiuno")
+	if got != `Hello <span class="red">Xiuno</span> World` {
+		t.Fatalf("got %q", got)
+	}
+}

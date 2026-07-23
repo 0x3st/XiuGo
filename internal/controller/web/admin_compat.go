@@ -70,7 +70,8 @@ func (c *Controller) AdminCompat(r *ghttp.Request) {
 	case "other":
 		c.adminCompatOther(r, user, action)
 	case "plugin":
-		c.adminCompatPlugin(r, user, action, arguments)
+		// XiuGo does not load Xiuno PHP plugins (no Hook/Overwrite runtime).
+		c.writeXiunoMessage(r, -1, "XiuGo 不支持原版 PHP 插件；后续如需扩展将使用 Go 侧扩展点，而非 Xiuno 插件目录")
 	default:
 		c.adminCompatDashboard(r, user)
 	}
@@ -170,6 +171,14 @@ func (c *Controller) adminCompatSMTP(r *ghttp.Request, user view.User) {
 		}
 		if err := c.service.UpdateSMTPAccounts(r.Context(), accounts); err != nil {
 			c.writeXiunoMessage(r, -1, err.Error())
+			return
+		}
+		if testEmail := strings.TrimSpace(r.GetForm("test_email").String()); testEmail != "" {
+			if err := c.service.TestSMTPSend(r.Context(), testEmail); err != nil {
+				c.writeXiunoMessage(r, -1, "配置已保存，但测试发送失败："+err.Error())
+				return
+			}
+			c.writeXiunoMessage(r, 0, "保存成功，测试邮件已发送")
 			return
 		}
 		c.writeXiunoMessage(r, 0, "保存成功")

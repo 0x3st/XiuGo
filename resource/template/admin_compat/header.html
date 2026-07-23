@@ -23,7 +23,6 @@
         <li class="nav-item nav-item-thread {{if eq .Active "thread"}}active{{end}}"><a class="nav-link" href="/admin/?thread-list.htm"><i class="icon-comment"></i> 主题</a></li>
         <li class="nav-item nav-item-user {{if eq .Active "user"}}active{{end}}"><a class="nav-link" href="/admin/?user-list.htm"><i class="icon-user"></i> 用户</a></li>
         <li class="nav-item nav-item-other {{if eq .Active "other"}}active{{end}}"><a class="nav-link" href="/admin/?other.htm"><i class="icon-wrench"></i> 其他</a></li>
-        <li class="nav-item nav-item-plugin {{if eq .Active "plugin"}}active{{end}}"><a class="nav-link" href="/admin/?plugin.htm"><i class="icon-cogs"></i> 插件</a></li>
       </ul>
       <ul class="navbar-nav">
         <li class="nav-item"><a class="nav-link" href="/my"><img class="avatar-1" src="/view/img/avatar.png"> {{.User.Username}}</a></li>

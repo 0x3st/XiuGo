@@ -374,22 +374,10 @@ func (c *Controller) adminCompatOther(r *ghttp.Request, user view.User, action s
 }
 
 func (c *Controller) adminCompatPlugin(r *ghttp.Request, user view.User, action string, arguments []string) {
-	if action == "install" || action == "unstall" || action == "enable" || action == "disable" {
-		if err := c.service.SetAdminPluginState(r.Context(), firstArgument(arguments), action); err != nil {
-			c.writeXiunoMessage(r, -1, err.Error())
-			return
-		}
-		c.writeXiunoMessage(r, 0, "插件状态更新成功")
-		return
-	}
-	plugins, err := c.service.AdminPlugins(r.Context())
-	if err != nil {
-		c.fail(r, err)
-		return
-	}
-	c.writeAdminCompatTemplate(r, "admin_compat/plugin_list.html", gview.Params{
-		"Title": "本地插件", "Active": "plugin", "User": user, "Plugins": plugins, "Action": action, "Arguments": arguments,
-	})
+	_ = user
+	_ = action
+	_ = arguments
+	c.writeXiunoMessage(r, -1, "XiuGo 不支持原版 PHP 插件")
 }
 
 func indexedFormValues(r *ghttp.Request, name string) map[uint]string {

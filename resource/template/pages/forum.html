@@ -20,8 +20,8 @@
                 {{if eq .Orderby "tid"}}发帖时间{{else}}回复时间{{end}}
               </a>
               <div class="dropdown-menu dropdown-menu-right" aria-labelledby="ordery_dropdown_menu">
-                <a class="dropdown-item" href="/forum/{{.Forum.Fid}}?orderby=tid"><i class="icon text-primary {{if eq .Orderby "tid"}}icon-check{{end}}"></i>&nbsp; 发帖时间</a>
-                <a class="dropdown-item" href="/forum/{{.Forum.Fid}}?orderby=lastpid"><i class="icon text-primary {{if ne .Orderby "tid"}}icon-check{{end}}"></i>&nbsp; 回复时间</a>
+                <a class="dropdown-item" href="/forum/{{.Forum.Fid}}?orderby=tid&page=1"><i class="icon text-primary {{if eq .Orderby "tid"}}icon-check{{end}}"></i>&nbsp; 发帖时间</a>
+                <a class="dropdown-item" href="/forum/{{.Forum.Fid}}?orderby=lastpid&page=1"><i class="icon text-primary {{if ne .Orderby "tid"}}icon-check{{end}}"></i>&nbsp; 回复时间</a>
               </div>
             </div>
           </div>
@@ -34,7 +34,7 @@
       </div>
     </div>
     {{include "partials/thread_list_mod.html" .}}
-    <nav class="my-3"><ul class="pagination justify-content-center flex-wrap"></ul></nav>
+    <nav class="my-3">{{if .Pagination.HTML}}{{.Pagination.HTML}}{{end}}</nav>
   </div>
   <div class="col-lg-3 d-none d-lg-block aside">
     <a role="button" class="btn btn-primary btn-block mb-3" href="/thread/create?fid={{.Forum.Fid}}">发新帖</a>

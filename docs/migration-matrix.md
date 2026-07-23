@@ -13,10 +13,10 @@
 | PHP 路由/动作 | 方法 | 原版职责 | 主要数据 | GoFrame 路由 | 状态 |
 |---|---|---|---|---|---|
 | `index` | GET | 首页、最新主题、运行统计 | forum/thread/post/user | `/` | ✅ |
-| `forum-{fid}` | GET | 板块信息、主题列表、排序分页 | forum/thread | `/forum/:fid` | 🟡 已有访问权限过滤；缺分页、排序 |
-| `thread-{tid}` | GET | 主题、首帖、回复、浏览数 | thread/post/user/attach | `/thread/:tid` | 🟡 首帖/回复分层、楼层、`message_fmt`、非图片附件列表与下载已对齐；缺分页、HTML 片段响应 |
+| `forum-{fid}` | GET | 板块信息、主题列表、排序分页 | forum/thread | `/forum/:fid` | ✅ 访问权限、orderby、page 分页 |
+| `thread-{tid}` | GET | 主题、首帖、回复、浏览数 | thread/post/user/attach | `/thread/:tid` | 🟡 首帖/回复分层、楼层、`message_fmt`、非图片附件列表与下载已对齐；分页与 return_html 片段已支持 |
 | `thread-create-{fid}` | GET/POST | 发布主题 | thread/post/mythread/mypost/attach | `/thread/create` | ✅ 核心数据兼容；Session 临时附件随帖落库 |
-| `post-create-{tid}` | GET/POST | 回复、引用、快速回复 | post/mypost/thread/forum/user/attach | `/thread/:tid/reply` | 🟡 回复、引用校验、doctype/`message_fmt`、附件随帖落库已实现；缺 HTML 片段响应 |
+| `post-create-{tid}` | GET/POST | 回复、引用、快速回复 | post/mypost/thread/forum/user/attach | `/thread/:tid/reply` | 🟡 回复、引用校验、doctype/`message_fmt`、附件随帖落库已实现；return_html 片段已支持 |
 | `post-update-{pid}` | GET/POST | 编辑主题或回复、移动首帖 | post/thread/attach | `/post/:pid/edit` | 🟡 正文、标题、doctype 与追加/删除附件已实现；缺移动首帖 |
 | `post-delete-{pid}` | POST | 删除回复或整篇主题 | post/thread/attach/index | `/post/:pid/delete` | ✅ 帖子、索引、计数与附件文件/记录级联清理已实现 |
 | `attach-create` | POST | 上传附件、图片检测 | attach/upload/session | `POST /attach/create` | ✅ Base64 上传、类型白名单、20M 限制、Session `tmp_files` |
@@ -33,11 +33,11 @@
 | `my` / `my-profile` | GET | 我的资料 | user | `/my` | ✅；原码中的 profile 分支实际被注释 |
 | `my-password` | GET/POST | 修改密码 | user | `/my/password` | ✅ 浏览器预哈希，Go/PHP 双端密码兼容 |
 | `my-thread` | GET | 我的主题 | mythread/thread | `/my/threads` | 🟡 缺分页 |
-| `my-avatar` | GET/POST | 头像裁切上传 | user/upload | — | ⬜ |
+| `my-avatar` | GET/POST | 头像裁切上传 | user/upload | `/my/avatar` | ✅ base64 上传与默认头像 |
 | `mod-top` | GET/POST | 置顶 | thread/thread_top/modlog | `POST /thread/:tid/top`、`POST /mod/top` | ✅ 0/1/3 范围、权限、bbs_thread_top、modlog、列表置顶排序 |
 | `mod-close` | GET/POST | 关闭主题 | thread/modlog | `/admin/thread/:tid/close` | ✅ 管理端 |
 | `mod-delete` | GET/POST | 批量删主题 | thread/post/index/modlog | `/admin/thread/:tid/delete` | ✅ 管理端基础版 |
-| `mod-move` | GET/POST | 移动主题 | thread/forum/modlog | — | ⬜ |
+| `mod-move` | GET/POST | 移动主题 | thread/forum/modlog | `POST /mod/move` | ✅ 批量移动 |
 | `mod-deleteuser` | GET/POST | 删除用户及内容 | user/thread/post | — | ⬜ |
 | `browser-download` | GET | 浏览器升级提示 | 静态文件 | — | ⬜ 非核心 |
 
@@ -58,8 +58,8 @@
 | `admin/thread-list/scan/found` | 扫描、筛选、结果队列 | `/admin/?thread-*.htm`、`/admin/threads` | 🟡 已用 `bbs_queue` 实现完整筛选、分页扫描与结果页，待大数据量验收 |
 | `admin/thread-operation` | 批量删除、关闭、打开 | `/admin/?thread-operation-*.htm`、现代单条路由 | 🟡 队列批量操作已实现；日志行为仍待逐项对齐 |
 | `admin/other-cache` | 重建运行数据、清理上传临时目录 | `/admin/?other-cache.htm` | ✅ 单 Go：清 bbs_cache 后重算 runtime；清 upload/tmp（不再服务 PHP 并行） |
-| `admin/plugin-local/install/unstall/enable/disable` | 本地插件状态管理 | `/admin/?plugin-*.htm` | 🟡 已实现列表、依赖检查、同类互斥和状态写入；不执行 PHP 脚本/Hook |
-| `admin/plugin-official*/read/is_bought/download/upgrade/setting` | 市场、下载、升级、插件设置 | — | ⬜ |
+| `admin/plugin-*`（本地/市场） | Xiuno PHP 插件 | — | ❌ **不支持**；入口已移除 |
+| （同上）官方插件市场 | — | — | ❌ 不迁移 |
 
 ## 核心数据兼容状态
 
@@ -94,4 +94,4 @@
 3. 注册、个人中心、密码修改和找回。
 4. 附件上传下载、头像与图片处理。
 5. 版主批量操作、缓存、队列和统计任务。
-6. 插件 Hook/Overwrite 兼容策略或新的事件扩展 API。
+6. ~~PHP 插件~~ 已放弃；若需要扩展则设计 XiuGo 自有 Hook/模块 API。

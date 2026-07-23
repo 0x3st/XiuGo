@@ -98,6 +98,10 @@ type ThreadPage struct {
 	CanTop      bool
 	ReplyNotice string
 	NextFloor   uint
+	Page        int
+	Pages       int
+	Pagination  ListPagination
+	Keyword     string
 }
 
 type ThreadAuthor struct {
@@ -107,6 +111,15 @@ type ThreadAuthor struct {
 	AvatarURL string
 	Threads   int
 	Posts     int
+}
+
+// ListPagination is passed to templates for original-style pager HTML.
+type ListPagination struct {
+	HTML     string
+	Page     int
+	Pages    int
+	Total    int
+	PageSize int
 }
 
 type Stats struct {

@@ -178,3 +178,25 @@ func sendSMTPMessage(account view.SMTPAccount, senderName, recipient, subject, b
 	}
 	return nil
 }
+
+// TestSMTPSend sends a short message using the first configured SMTP account.
+func (s *Service) TestSMTPSend(ctx context.Context, recipient string) error {
+	recipient = strings.TrimSpace(recipient)
+	if recipient == "" {
+		return gerror.New("请输入测试收件邮箱")
+	}
+	accounts, err := s.SMTPAccounts(ctx)
+	if err != nil {
+		return err
+	}
+	if len(accounts) == 0 {
+		return gerror.New("尚未配置 SMTP 账号")
+	}
+	settings, err := s.SiteSettings(ctx)
+	if err != nil {
+		return err
+	}
+	subject := fmt.Sprintf("【%s】SMTP 测试邮件", settings.Sitename)
+	body := "这是一封来自 XiuGo 后台的 SMTP 测试邮件。如果您能看到本邮件，说明 SMTP 配置可用。"
+	return sendSMTPMessage(accounts[0], settings.Sitename, recipient, subject, body)
+}

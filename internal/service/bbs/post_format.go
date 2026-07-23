@@ -96,3 +96,29 @@ func canReplyToThread(closed, gid uint) bool {
 func validDoctype(doctype int) bool {
 	return doctype >= 0 && doctype <= 10
 }
+
+// highlightKeyword mirrors post_highlight_keyword(): case-insensitive wrap in <span class="red">.
+func highlightKeyword(str, keyword string) string {
+	keyword = strings.TrimSpace(keyword)
+	if str == "" || keyword == "" {
+		return str
+	}
+	lower := strings.ToLower(str)
+	key := strings.ToLower(keyword)
+	var b strings.Builder
+	i := 0
+	for {
+		j := strings.Index(lower[i:], key)
+		if j < 0 {
+			b.WriteString(str[i:])
+			break
+		}
+		j += i
+		b.WriteString(str[i:j])
+		b.WriteString(`<span class="red">`)
+		b.WriteString(str[j : j+len(keyword)])
+		b.WriteString(`</span>`)
+		i = j + len(keyword)
+	}
+	return b.String()
+}

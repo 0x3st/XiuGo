@@ -25,7 +25,7 @@
 ## 后续可继续清理（未在本轮删除）
 
 1. **配置迁出 `conf.php`**：站名/SMTP/runlevel 进 `manifest/config/config.yaml`，减少对 `phpRoot` 依赖  
-2. **插件管理页**：若永不做插件体系，可隐藏 `/admin/?plugin*`  
+2. **插件管理页**：**已移除**（不兼容 Xiuno PHP 插件）  
 3. **admin 双轨**：现代 `/admin/*` 与 `?xxx.htm` 兼容层二选一收敛  
 4. **台账验收标准**：由「PHP 交叉读取」改为「Go 单端 + 库表断言」  
 5. **cron 路径文案**：`cleanupOriginalTempAttachments` 命名可改为中性  

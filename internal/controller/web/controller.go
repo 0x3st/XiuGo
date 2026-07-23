@@ -180,7 +180,11 @@ func forumArrJSON(forums []view.ForumSummary) string {
 
 func (c *Controller) Home(r *ghttp.Request) {
 	user := c.currentUser(r)
-	forums, threads, stats, err := c.service.Home(r.Context(), user)
+	page := r.GetQuery("page").Int()
+	if page < 1 {
+		page = 1
+	}
+	forums, threads, stats, pager, err := c.service.HomePaged(r.Context(), user, page)
 	if err != nil {
 		c.fail(r, err)
 		return
@@ -198,6 +202,7 @@ func (c *Controller) Home(r *ghttp.Request) {
 	if err = c.renderPage(r, "pages/home.html", gview.Params{
 		"Title": settings.Sitename, "Forums": forums, "NavForums": forums, "Threads": threads,
 		"Stats": stats, "User": user, "ActiveFid": 0, "HaveAllowTop": haveAllowTop,
+		"Pagination": pager,
 		"ExtraJS": template.HTML(`<script>$('li[data-active="fid-0"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
@@ -211,7 +216,11 @@ func (c *Controller) Forum(r *ghttp.Request) {
 	if orderby != "tid" {
 		orderby = "lastpid"
 	}
-	forum, threads, err := c.service.ForumOrdered(r.Context(), fid, user, orderby)
+	page := r.GetQuery("page").Int()
+	if page < 1 {
+		page = 1
+	}
+	forum, threads, pager, err := c.service.ForumOrdered(r.Context(), fid, user, orderby, page)
 	if err != nil {
 		c.fail(r, err)
 		return
@@ -229,6 +238,7 @@ func (c *Controller) Forum(r *ghttp.Request) {
 	if err = c.renderPage(r, "pages/forum.html", gview.Params{
 		"Title": forum.Name + "-" + settings.Sitename, "Forum": forum,
 		"Threads": threads, "User": user, "ActiveFid": fid, "Orderby": orderby, "HaveAllowTop": haveAllowTop,
+		"Pagination": pager,
 		"MobileTitle": forum.Name, "MobileLink": "/forum/" + strconv.FormatUint(uint64(fid), 10),
 		"ExtraJS": template.HTML(fmt.Sprintf(`<script>$('li[data-active="fid-%d"]').addClass('active');</script>`, fid)),
 	}); err != nil {
@@ -239,7 +249,12 @@ func (c *Controller) Forum(r *ghttp.Request) {
 func (c *Controller) Thread(r *ghttp.Request) {
 	tid := r.GetRouter("tid").Uint()
 	user := c.currentUser(r)
-	page, err := c.service.Thread(r.Context(), tid, user)
+	pageNum := r.GetQuery("page").Int()
+	if pageNum < 1 {
+		pageNum = 1
+	}
+	keyword := r.GetQuery("keyword").String()
+	page, err := c.service.Thread(r.Context(), tid, user, pageNum, keyword)
 	if err != nil {
 		c.fail(r, err)
 		return
@@ -420,7 +435,7 @@ func (c *Controller) EditPost(r *ghttp.Request) {
 		pending := c.pendingAttachments(r)
 		if _, err := c.service.UpdatePost(
 			r.Context(), pid, user.Uid, r.GetForm("subject").String(), r.GetForm("message").String(),
-			r.GetForm("doctype").Int(), pending,
+			r.GetForm("doctype").Int(), pending, r.GetForm("fid").Uint(),
 		); err != nil {
 			c.writeXiunoMessage(r, -1, err.Error())
 			return
@@ -435,8 +450,9 @@ func (c *Controller) EditPost(r *ghttp.Request) {
 		return
 	}
 	loc := "/thread/" + strconv.FormatUint(uint64(post.Tid), 10)
+	forums, _ := c.service.ForumsAllowThread(r.Context(), user)
 	if err = c.renderPage(r, "pages/post_edit.html", gview.Params{
-		"Title": "编辑帖子", "Post": post, "User": user,
+		"Title": "编辑帖子", "Post": post, "User": user, "Forums": forums,
 		"Pending": c.pendingAttachments(r), "ActiveFid": post.Fid,
 		"ExtraJS": template.HTML(postFormExtraJS(loc, uint(post.Fid), false)),
 	}); err != nil {
@@ -717,14 +733,33 @@ func (c *Controller) UserThreads(r *ghttp.Request) {
 		c.fail(r, err)
 		return
 	}
-	threads, err := c.service.UserThreads(r.Context(), uid)
+	page := r.GetQuery("page").Int()
+	if page < 1 {
+		page = 1
+	}
+	threads, pager, err := c.service.UserThreadsPaged(r.Context(), uid, page)
 	if err != nil {
 		c.fail(r, err)
 		return
 	}
+	// Filter unreadable forums for viewers other than owner.
+	if user.Uid != uid {
+		visible := threads[:0]
+		for _, th := range threads {
+			ok, permErr := c.service.ForumReadable(r.Context(), uint(th.Fid), user.Gid)
+			if permErr != nil {
+				c.fail(r, permErr)
+				return
+			}
+			if ok {
+				visible = append(visible, th)
+			}
+		}
+		threads = visible
+	}
 	if err = c.renderPage(r, "pages/user_threads.html", gview.Params{
 		"Title": profile.Username, "Profile": profile,
-		"Threads": threads, "User": user, "Mine": false,
+		"Threads": threads, "User": user, "Mine": false, "Pagination": pager,
 		"ExtraJS": template.HTML(`<script>$('a[data-active="menu-user-thread"]').addClass('active');$('a[data-active="user-thread"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
@@ -761,14 +796,22 @@ func (c *Controller) MyThreads(r *ghttp.Request) {
 		c.fail(r, err)
 		return
 	}
-	threads, err := c.service.UserThreads(r.Context(), user.Uid)
+	page := r.GetQuery("page").Int()
+	if page < 1 {
+		page = 1
+	}
+	threads, pager, err := c.service.UserThreadsPaged(r.Context(), user.Uid, page)
 	if err != nil {
 		c.fail(r, err)
 		return
 	}
+	// My threads: rewrite pager links to /my/threads
+	if pager.HTML != "" {
+		pager.HTML = strings.ReplaceAll(pager.HTML, "/user/"+strconv.FormatUint(uint64(user.Uid), 10)+"/threads", "/my/threads")
+	}
 	settings, _ := c.service.SiteSettings(r.Context())
 	if err = c.renderPage(r, "pages/user_threads.html", gview.Params{
-		"Title": settings.Sitename, "Profile": profile, "Threads": threads, "User": user, "Mine": true,
+		"Title": settings.Sitename, "Profile": profile, "Threads": threads, "User": user, "Mine": true, "Pagination": pager,
 		"ExtraJS": template.HTML(`<script>$('a[data-active="menu-my-thread"]').addClass('active');$('a[data-active="my-thread"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
@@ -1037,7 +1080,7 @@ func (c *Controller) AdvancedReply(r *ghttp.Request) {
 		return
 	}
 	tid := r.GetRouter("tid").Uint()
-	page, err := c.service.Thread(r.Context(), tid, user)
+	page, err := c.service.Thread(r.Context(), tid, user, 1, "")
 	if err != nil {
 		c.fail(r, err)
 		return

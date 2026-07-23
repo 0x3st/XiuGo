@@ -9,6 +9,13 @@
           <input type="hidden" name="quotepid" value="{{.Post.Quotepid}}" />
           {{if .Post.Isfirst}}
           <div class="form-group">
+            <select class="custom-select mr-1 w-auto" name="fid" id="fid">
+              {{range .Forums}}
+              <option value="{{.Fid}}" {{if eq $.Post.Fid .Fid}}selected{{end}}>{{.Name}}</option>
+              {{end}}
+            </select>
+          </div>
+          <div class="form-group">
             <input type="text" class="form-control" placeholder="标题" name="subject" value="{{.Post.Subject}}" id="subject">
           </div>
           {{end}}

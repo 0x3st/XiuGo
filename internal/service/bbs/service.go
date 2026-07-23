@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -26,6 +27,36 @@ type Service struct{}
 
 func New() *Service {
 	return &Service{}
+}
+
+func (s *Service) listPageSize(ctx context.Context) int {
+	if n := s.phpConfInt(ctx, "pagesize"); n > 0 {
+		return n
+	}
+	return 20
+}
+
+func (s *Service) postListPageSize(ctx context.Context) int {
+	if n := s.phpConfInt(ctx, "postlist_pagesize"); n > 0 {
+		return n
+	}
+	return 100
+}
+
+func (s *Service) phpConfInt(ctx context.Context, key string) int {
+	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
+	if err != nil {
+		return 0
+	}
+	return phpConfigInt(content, key)
+}
+
+func (s *Service) phpConfString(ctx context.Context, key string) string {
+	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
+	if err != nil {
+		return ""
+	}
+	return phpConfigString(content, key)
 }
 
 func (s *Service) Home(ctx context.Context, viewer view.User) (forums []view.ForumSummary, threads []view.ThreadSummary, stats view.Stats, err error) {
@@ -49,7 +80,9 @@ func (s *Service) Home(ctx context.Context, viewer view.User) (forums []view.For
 	for i := range forums {
 		forums[i].IconURL = forumIconURL(forums[i].Fid, forums[i].Icon)
 	}
-	if threads, err = s.listThreads(ctx, 0, 20, "lastpid"); err != nil {
+	pageSize := s.listPageSize(ctx)
+	// Home ignores page here; controller calls HomePaged.
+	if threads, _, err = s.listThreads(ctx, 0, 1, pageSize, "lastpid"); err != nil {
 		return nil, nil, stats, err
 	}
 	if stats.Threads, err = dao.BbsThread.Ctx(ctx).Count(); err != nil {
@@ -65,6 +98,32 @@ func (s *Service) Home(ctx context.Context, viewer view.User) (forums []view.For
 		return nil, nil, stats, err
 	}
 	return forums, threads, stats, nil
+}
+
+
+// HomePaged is Home with list pagination (index route page param).
+func (s *Service) HomePaged(ctx context.Context, viewer view.User, page int) (forums []view.ForumSummary, threads []view.ThreadSummary, stats view.Stats, pager view.ListPagination, err error) {
+	forums, _, stats, err = s.Home(ctx, viewer)
+	if err != nil {
+		return nil, nil, stats, pager, err
+	}
+	pageSize := s.listPageSize(ctx)
+	// Home order follows conf order_default (tid|lastpid).
+	order := "lastpid"
+	if s.phpConfString(ctx, "order_default") == "tid" {
+		order = "tid"
+	}
+	threads, total, err := s.listThreads(ctx, 0, page, pageSize, order)
+	if err != nil {
+		return nil, nil, stats, pager, err
+	}
+	threads, err = s.filterThreadsByRead(ctx, threads, viewer.Gid)
+	if err != nil {
+		return nil, nil, stats, pager, err
+	}
+	p := buildPagination("/?page={page}", total, page, pageSize)
+	pager = view.ListPagination{HTML: p.HTML, Page: p.Page, Pages: p.Pages, Total: p.Total, PageSize: p.PageSize}
+	return forums, threads, stats, pager, nil
 }
 
 func (s *Service) Forum(ctx context.Context, fid uint, viewer view.User) (forum view.ForumSummary, threads []view.ThreadSummary, err error) {
@@ -84,60 +143,94 @@ func (s *Service) Forum(ctx context.Context, fid uint, viewer view.User) (forum 
 		return forum, nil, gerror.New("当前用户组没有查看此板块的权限")
 	}
 	forum.IconURL = forumIconURL(forum.Fid, forum.Icon)
-	if threads, err = s.listThreads(ctx, fid, 50, "lastpid"); err != nil {
+	if threads, _, err = s.listThreads(ctx, fid, 1, s.listPageSize(ctx), "lastpid"); err != nil {
 		return forum, nil, err
 	}
 	return forum, threads, nil
 }
 
-// ForumOrdered is like Forum but allows lastpid/tid sort matching forum.php.
-func (s *Service) ForumOrdered(ctx context.Context, fid uint, viewer view.User, orderby string) (forum view.ForumSummary, threads []view.ThreadSummary, err error) {
+// ForumOrdered is like Forum but allows lastpid/tid sort and paging matching forum.php.
+func (s *Service) ForumOrdered(ctx context.Context, fid uint, viewer view.User, orderby string, page int) (forum view.ForumSummary, threads []view.ThreadSummary, pager view.ListPagination, err error) {
 	forum, _, err = s.Forum(ctx, fid, viewer)
 	if err != nil {
-		return forum, nil, err
+		return forum, nil, pager, err
 	}
 	if orderby != "tid" {
 		orderby = "lastpid"
 	}
-	threads, err = s.listThreads(ctx, fid, 50, orderby)
-	return forum, threads, err
+	pageSize := s.listPageSize(ctx)
+	threads, total, err := s.listThreads(ctx, fid, page, pageSize, orderby)
+	if err != nil {
+		return forum, nil, pager, err
+	}
+	// Forum already require read; keep filter for consistency with accesson edge cases.
+	threads, err = s.filterThreadsByRead(ctx, threads, viewer.Gid)
+	if err != nil {
+		return forum, nil, pager, err
+	}
+	urlPattern := fmt.Sprintf("/forum/%d?orderby=%s&page={page}", fid, orderby)
+	p := buildPagination(urlPattern, total, page, pageSize)
+	pager = view.ListPagination{HTML: p.HTML, Page: p.Page, Pages: p.Pages, Total: p.Total, PageSize: p.PageSize}
+	return forum, threads, pager, nil
 }
 
 
-func (s *Service) listThreads(ctx context.Context, fid uint, limit int, orderby string) (threads []view.ThreadSummary, err error) {
+func (s *Service) listThreads(ctx context.Context, fid uint, page, pageSize int, orderby string) (threads []view.ThreadSummary, total int, err error) {
 	if orderby != "tid" {
 		orderby = "lastpid"
+	}
+	if pageSize < 1 {
+		pageSize = 20
+	}
+	if page < 1 {
+		page = 1
 	}
 	orderColumn := "bbs_thread.lastpid"
 	if orderby == "tid" {
 		orderColumn = "bbs_thread.tid"
 	}
+	countModel := dao.BbsThread.Ctx(ctx)
+	if fid > 0 {
+		countModel = countModel.Where(do.BbsThread{Fid: fid})
+	}
+	total, err = countModel.Count()
+	if err != nil {
+		return nil, 0, gerror.Wrap(err, "统计主题失败")
+	}
+	pages := total / pageSize
+	if total%pageSize != 0 {
+		pages++
+	}
+	if pages < 1 {
+		pages = 1
+	}
+	page = clampPage(page, pages)
+
 	model := dao.BbsThread.Ctx(ctx).
 		LeftJoin("bbs_user u", "u.uid=bbs_thread.uid").
 		LeftJoin("bbs_user lu", "lu.uid=bbs_thread.lastuid").
 		LeftJoin("bbs_forum f", "f.fid=bbs_thread.fid").
 		Fields("bbs_thread.tid,bbs_thread.uid,bbs_thread.fid,bbs_thread.subject,bbs_thread.create_date,bbs_thread.last_date,bbs_thread.lastuid,bbs_thread.views,bbs_thread.posts,bbs_thread.files,bbs_thread.closed,bbs_thread.top,u.username,u.avatar,lu.username AS last_username,f.name AS forum_name").
 		OrderDesc(orderColumn).
-		Limit(limit)
+		Page(page, pageSize)
 	if fid > 0 {
 		model = model.Where("bbs_thread.fid", fid)
 	}
 	if err = model.Scan(&threads); err != nil {
-		return nil, gerror.Wrap(err, "读取主题列表失败")
+		return nil, 0, gerror.Wrap(err, "读取主题列表失败")
 	}
-	// Avatar comes from join as "avatar" on first user - map via format helper using Uid only default for now.
 	for i := range threads {
 		formatThreadSummary(&threads[i])
 	}
-	// Match thread_find_by_fid / index: pinned threads lead page 1 only when ordered by default lastpid.
-	if orderby == "lastpid" {
+	// Pinned threads lead only page 1 with default lastpid order (PHP thread_find_by_fid).
+	if orderby == "lastpid" && page == 1 {
 		pinned, pinErr := s.listPinnedThreads(ctx, fid)
 		if pinErr != nil {
-			return nil, pinErr
+			return nil, 0, pinErr
 		}
-		return mergePinnedThreads(pinned, threads, limit), nil
+		return mergePinnedThreads(pinned, threads, pageSize), total, nil
 	}
-	return threads, nil
+	return threads, total, nil
 }
 
 // listPinnedThreads mirrors thread_top_find(). fid=0 returns site-wide top=3 only;
@@ -232,7 +325,7 @@ func threadTopClass(top int) string {
 	}
 }
 
-func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User) (page view.ThreadPage, err error) {
+func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User, pageNum int, keyword string) (page view.ThreadPage, err error) {
 	if err = dao.BbsThread.Ctx(ctx).
 		LeftJoin("bbs_user u", "u.uid=bbs_thread.uid").
 		LeftJoin("bbs_forum f", "f.fid=bbs_thread.fid").
@@ -253,6 +346,11 @@ func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User) (page 
 	}
 	page.Thread.CreateTime = humanDate(page.Thread.CreateDate)
 	page.Thread.TopClass = threadTopClass(page.Thread.Top)
+	keyword = strings.TrimSpace(keyword)
+	page.Keyword = keyword
+	if keyword != "" {
+		page.Thread.Subject = highlightKeyword(page.Thread.Subject, keyword)
+	}
 	if err = dao.BbsUser.Ctx(ctx).
 		Fields("uid,username,avatar,threads,posts").
 		Where(do.BbsUser{Uid: page.Thread.Uid}).
@@ -260,13 +358,38 @@ func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User) (page 
 		return page, gerror.Wrap(err, "读取主题作者失败")
 	}
 	page.Author.AvatarURL = avatarURL(page.Author.Uid, page.Author.Avatar)
+	pageSize := s.postListPageSize(ctx)
+	if pageNum < 1 {
+		pageNum = 1
+	}
+	// Total posts including first; PHP uses posts+1 for pagination total.
+	totalPosts := int(page.Thread.Posts) + 1
+	pages := totalPosts / pageSize
+	if totalPosts%pageSize != 0 {
+		pages++
+	}
+	if pages < 1 {
+		pages = 1
+	}
+	pageNum = clampPage(pageNum, pages)
+	page.Page = pageNum
+	page.Pages = pages
+	pageURL := fmt.Sprintf("/thread/%d?page={page}", tid)
+	if keyword != "" {
+		pageURL = fmt.Sprintf("/thread/%d?keyword=%s&page={page}", tid, url.QueryEscape(keyword))
+	}
+	p := buildPagination(pageURL, totalPosts, pageNum, pageSize)
+	page.Pagination = view.ListPagination{HTML: p.HTML, Page: p.Page, Pages: p.Pages, Total: p.Total, PageSize: p.PageSize}
+
 	var posts []view.PostView
-	if err = dao.BbsPost.Ctx(ctx).
+	model := dao.BbsPost.Ctx(ctx).
 		LeftJoin("bbs_user u", "u.uid=bbs_post.uid").
 		Fields("bbs_post.pid,bbs_post.tid,bbs_post.uid,bbs_post.isfirst,bbs_post.create_date,bbs_post.doctype,bbs_post.quotepid,bbs_post.message,bbs_post.message_fmt,u.username,u.avatar").
 		Where("bbs_post.tid", tid).
-		OrderAsc("bbs_post.pid").
-		Scan(&posts); err != nil {
+		OrderAsc("bbs_post.pid")
+	// Page 1 includes first post + replies; later pages are reply windows by pid order.
+	// Approximate PHP: page slice of all posts ordered by pid.
+	if err = model.Page(pageNum, pageSize).Scan(&posts); err != nil {
 		return page, gerror.Wrap(err, "读取回复失败")
 	}
 	postIDs := make([]uint, 0, len(posts))
@@ -308,9 +431,10 @@ func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User) (page 
 			page.ReplyNotice = "当前用户组没有回复权限"
 		}
 	}
+	floorBase := uint((pageNum - 1) * pageSize)
 	for i := range posts {
 		posts[i].Files = attachments[posts[i].Pid]
-		posts[i].Floor = uint(i + 1)
+		posts[i].Floor = floorBase + uint(i+1)
 		posts[i].CreateTime = humanDate(posts[i].CreateDate)
 		posts[i].AvatarURL = avatarURL(posts[i].Uid, posts[i].Avatar)
 		if posts[i].MessageFmt == "" {
@@ -335,7 +459,49 @@ func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User) (page 
 		}
 	}
 	if page.First.Pid == 0 {
-		return page, gerror.New("主题首帖数据不完整")
+		// Later pages omit first post from slice; load firstpid row for header card.
+		var first view.PostView
+		if err = dao.BbsPost.Ctx(ctx).
+			LeftJoin("bbs_user u", "u.uid=bbs_post.uid").
+			Fields("bbs_post.pid,bbs_post.tid,bbs_post.uid,bbs_post.isfirst,bbs_post.create_date,bbs_post.doctype,bbs_post.quotepid,bbs_post.message,bbs_post.message_fmt,u.username,u.avatar").
+			Where("bbs_post.pid", page.Thread.Firstpid).
+			Scan(&first); err != nil {
+			return page, gerror.Wrap(err, "读取首帖失败")
+		}
+		if first.Pid == 0 {
+			return page, gerror.New("主题首帖数据不完整")
+		}
+		files, fileErr := s.AttachmentsForPost(ctx, first.Pid)
+		if fileErr != nil {
+			return page, fileErr
+		}
+		first.Files = files
+		first.Floor = 1
+		first.CreateTime = humanDate(first.CreateDate)
+		first.AvatarURL = avatarURL(first.Uid, first.Avatar)
+		if first.MessageFmt == "" {
+			first.MessageFmt = formatPostMessage(first.Message, first.Doctype, 0)
+		}
+		first.CanQuote = false
+		canUpdate := canPost && (viewer.Uid == first.Uid || canUpdateMod)
+		canDelete := canPost && (viewer.Uid == first.Uid || canDeleteMod)
+		if page.Thread.Closed != 0 && !canUpdateMod {
+			canUpdate = false
+		}
+		if page.Thread.Closed != 0 && !canDeleteMod {
+			canDelete = false
+		}
+		first.CanEdit = canUpdate
+		first.CanDelete = canDelete
+		page.First = first
+		// Remove accidental first from replies if present
+		filtered := page.Replies[:0]
+		for _, reply := range page.Replies {
+			if reply.Pid != page.Thread.Firstpid {
+				filtered = append(filtered, reply)
+			}
+		}
+		page.Replies = filtered
 	}
 	page.NextFloor = page.Thread.Posts + 2
 	_, _ = dao.BbsThread.Ctx(ctx).
@@ -634,7 +800,7 @@ func (s *Service) PostForEdit(ctx context.Context, pid, uid uint) (result view.P
 
 func (s *Service) UpdatePost(
 	ctx context.Context, pid, uid uint, subject, message string, doctype int,
-	pending []view.PendingAttachment,
+	pending []view.PendingAttachment, newFid uint,
 ) (tid uint, err error) {
 	var (
 		post   entity.BbsPost
@@ -677,10 +843,39 @@ func (s *Service) UpdatePost(
 		if len([]rune(subject)) > 80 {
 			return 0, gerror.New("主题标题不能超过 80 个字")
 		}
+		updates := do.BbsThread{Subject: subject}
+		if newFid != 0 && newFid != uint(thread.Fid) {
+			// Move first post/thread to another forum (PHP post-update fid).
+			if err = s.requireForumPermission(ctx, newFid, uid, "thread"); err != nil {
+				return 0, err
+			}
+			var dest entity.BbsForum
+			if err = dao.BbsForum.Ctx(ctx).Where(do.BbsForum{Fid: newFid}).Scan(&dest); err != nil {
+				return 0, gerror.Wrap(err, "读取目标板块失败")
+			}
+			if dest.Fid == 0 {
+				return 0, gerror.New("板块不存在")
+			}
+			if post.Uid != uid {
+				// already moderated via canPostAction
+			}
+			updates.Fid = int(newFid)
+			if _, err = dao.BbsForum.Ctx(ctx).Where(do.BbsForum{Fid: newFid}).Data(do.BbsForum{
+				Threads: gdb.Raw("threads + 1"),
+			}).Update(); err != nil {
+				return 0, gerror.Wrap(err, "更新目标板块计数失败")
+			}
+			if _, err = dao.BbsForum.Ctx(ctx).Where(do.BbsForum{Fid: thread.Fid}).Data(do.BbsForum{
+				Threads: gdb.Raw("GREATEST(threads - 1, 0)"),
+			}).Update(); err != nil {
+				return 0, gerror.Wrap(err, "更新原板块计数失败")
+			}
+			_, _ = dao.BbsThreadTop.Ctx(ctx).Where(do.BbsThreadTop{Tid: post.Tid}).Data(do.BbsThreadTop{Fid: int(newFid)}).Update()
+		}
 		if _, err = dao.BbsThread.Ctx(ctx).
 			Where(do.BbsThread{Tid: post.Tid}).
-			Data(do.BbsThread{Subject: subject}).Update(); err != nil {
-			return 0, gerror.Wrap(err, "更新主题标题失败")
+			Data(updates).Update(); err != nil {
+			return 0, gerror.Wrap(err, "更新主题失败")
 		}
 	}
 	messageFmt := formatPostMessage(message, doctype, user.Gid)
@@ -881,6 +1076,27 @@ func (s *Service) ForumsAllowThread(ctx context.Context, viewer view.User) ([]vi
 }
 
 func (s *Service) UserThreads(ctx context.Context, uid uint) (threads []view.ThreadSummary, err error) {
+	threads, _, err = s.UserThreadsPaged(ctx, uid, 1)
+	return threads, err
+}
+
+func (s *Service) UserThreadsPaged(ctx context.Context, uid uint, page int) (threads []view.ThreadSummary, pager view.ListPagination, err error) {
+	pageSize := s.listPageSize(ctx)
+	if page < 1 {
+		page = 1
+	}
+	total, err := dao.BbsMythread.Ctx(ctx).Where(do.BbsMythread{Uid: uid}).Count()
+	if err != nil {
+		return nil, pager, gerror.Wrap(err, "统计用户主题失败")
+	}
+	pages := total / pageSize
+	if total%pageSize != 0 {
+		pages++
+	}
+	if pages < 1 {
+		pages = 1
+	}
+	page = clampPage(page, pages)
 	model := dao.BbsThread.Ctx(ctx).
 		LeftJoin("bbs_mythread mt", "mt.tid=bbs_thread.tid").
 		LeftJoin("bbs_user u", "u.uid=bbs_thread.uid").
@@ -889,14 +1105,17 @@ func (s *Service) UserThreads(ctx context.Context, uid uint) (threads []view.Thr
 		Fields("bbs_thread.tid,bbs_thread.uid,bbs_thread.fid,bbs_thread.subject,bbs_thread.create_date,bbs_thread.last_date,bbs_thread.lastuid,bbs_thread.views,bbs_thread.posts,bbs_thread.files,bbs_thread.closed,bbs_thread.top,u.username,u.avatar,lu.username AS last_username,f.name AS forum_name").
 		Where("mt.uid", uid).
 		OrderDesc("bbs_thread.tid").
-		Limit(100)
+		Page(page, pageSize)
 	if err = model.Scan(&threads); err != nil {
-		return nil, gerror.Wrap(err, "读取用户主题失败")
+		return nil, pager, gerror.Wrap(err, "读取用户主题失败")
 	}
 	for i := range threads {
 		formatThreadSummary(&threads[i])
 	}
-	return threads, nil
+	// Public user thread list filters unreadable forums for non-owners in controller if needed.
+	p := buildPagination(fmt.Sprintf("/user/%d/threads?page={page}", uid), total, page, pageSize)
+	pager = view.ListPagination{HTML: p.HTML, Page: p.Page, Pages: p.Pages, Total: p.Total, PageSize: p.PageSize}
+	return threads, pager, nil
 }
 
 func (s *Service) ChangePassword(ctx context.Context, uid uint, oldPassword, newPassword, repeat string) (err error) {
@@ -1510,6 +1729,34 @@ func (s *Service) requireForumPermission(ctx context.Context, fid, uid uint, per
 		return gerror.New("当前用户组没有此板块的操作权限")
 	}
 	return nil
+}
+
+func (s *Service) ForumReadable(ctx context.Context, fid, gid uint) (bool, error) {
+	return s.forumPermission(ctx, fid, gid, "read")
+}
+
+// filterThreadsByRead drops threads in forums the viewer cannot read (PHP thread_list_access_filter).
+func (s *Service) filterThreadsByRead(ctx context.Context, threads []view.ThreadSummary, gid uint) ([]view.ThreadSummary, error) {
+	if len(threads) == 0 {
+		return threads, nil
+	}
+	cache := map[int]bool{}
+	out := make([]view.ThreadSummary, 0, len(threads))
+	for _, th := range threads {
+		ok, known := cache[th.Fid]
+		if !known {
+			allowed, err := s.forumPermission(ctx, uint(th.Fid), gid, "read")
+			if err != nil {
+				return nil, err
+			}
+			cache[th.Fid] = allowed
+			ok = allowed
+		}
+		if ok {
+			out = append(out, th)
+		}
+	}
+	return out, nil
 }
 
 func (s *Service) forumPermission(ctx context.Context, fid, gid uint, permission string) (allowed bool, err error) {

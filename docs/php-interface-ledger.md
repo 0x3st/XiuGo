@@ -11,11 +11,11 @@
 | # | PHP 文件与 action | 方法 | 关键输入/行为 | GoFrame 对应 | 状态 |
 |---:|---|---|---|---|---|
 | 1 | `route/index.php` 默认 | GET | 首页、最新主题、统计 | `GET /` | ✅ |
-| 2 | `route/forum.php` 默认 | GET | `fid/page/order`、板块主题列表 | `GET /forum/:fid` | 🟡 已有板块访问权限；缺分页、排序 |
-| 3 | `route/thread.php` 默认 | GET | `tid/page/keyword`、主题和帖子 | `GET /thread/:tid` | 🟡 首帖/回复、楼层、`message_fmt`、引用入口和权限已对齐；缺分页、关键词定位、附件 |
+| 2 | `route/forum.php` 默认 | GET | `fid/page/order`、板块主题列表 | `GET /forum/:fid` | ✅ 权限、orderby、page |
+| 3 | `route/thread.php` 默认 | GET | `tid/page/keyword`、主题和帖子 | `GET /thread/:tid` | 🟡 首帖/回复、楼层、`message_fmt`、引用入口和权限已对齐；分页已实现；关键词定位可选 |
 | 4 | `route/thread.php:create` | GET/POST | `fid/subject/message/doctype` | `ALL /thread/create` | ✅ 核心表、用户索引、计数与 Session 临时附件落库兼容 |
-| 5 | `route/post.php:create` | GET/POST | `tid/quick/quotepid/message/doctype/return_html` | `POST /thread/:tid/reply` | 🟡 引用归属校验、引用摘要、doctype、`message_fmt` 与附件落库已实现；缺 HTML 片段响应 |
-| 6 | `route/post.php:update` | GET/POST | `pid/fid/subject/message/doctype` | `ALL /post/:pid/edit` | 🟡 已支持正文、首帖标题、doctype 与追加/删除附件；缺移动板块 |
+| 5 | `route/post.php:create` | GET/POST | `tid/quick/quotepid/message/doctype/return_html` | `POST /thread/:tid/reply` | 🟡 引用归属校验、引用摘要、doctype、`message_fmt` 与附件落库已实现；return_html 已支持 |
+| 6 | `route/post.php:update` | GET/POST | `pid/fid/subject/message/doctype` | `ALL /post/:pid/edit` | 🟡 已支持正文、首帖标题、doctype 与追加/删除附件；首帖可改 fid 移动板块 |
 | 7 | `route/post.php:delete` | POST | `pid`；首帖删主题，回复单删 | `POST /post/:pid/delete` | ✅ 主题/回复、索引计数与附件文件/记录级联清理 |
 | 8 | `route/attach.php:create` | POST | `width/height/is_image/name/data` | `POST /attach/create` | ✅ Base64 上传、类型白名单、20M、Session 临时区 |
 | 9 | `route/attach.php:delete` | POST | `aid`、上传者/版主权限 | `POST /attach/:aid/delete` | ✅ 临时 `_n` 与正式 aid；上传者/版主 |
@@ -24,14 +24,14 @@
 | 12 | `route/mod.php:top` | GET/POST | `top/tidarr[]`、置顶与日志 | `POST /thread/:tid/top`、`POST /mod/top` | ✅ 0 取消/1 版块/3 全站；admin 全站限制；modlog；列表前置 |
 | 13 | `route/mod.php:close` | GET/POST | `close/tidarr[]` | `POST /admin/thread/:tid/close` | 🟡 管理端支持单条关闭/打开 |
 | 14 | `route/mod.php:delete` | GET/POST | `tidarr[]`、批量删除 | `POST /admin/thread/:tid/delete` | 🟡 管理端支持单条删除 |
-| 15 | `route/mod.php:move` | GET/POST | `tidarr[]/newfid` | — | ⬜ |
+| 15 | `route/mod.php:move` | GET/POST | `tidarr[]/newfid` | `POST /mod/move` | ✅ |
 | 16 | `route/mod.php:deleteuser` | POST | `uid`、删用户及全部内容 | — | ⬜ |
 | 17 | `route/my.php` 默认 | GET | 当前用户资料首页 | `GET /my` | ✅ |
 | 18 | `route/my.php:password` | GET/POST | `password_old/password_new/password_new_repeat` | `ALL /my/password` | ✅ 浏览器预哈希、服务端拒收明文，双端密码格式兼容 |
-| 19 | `route/my.php:thread` | GET | `page`、`bbs_mythread` 主题列表 | `GET /my/threads` | 🟡 缺分页 |
-| 20 | `route/my.php:avatar` | GET/POST | `width/height/data`、头像文件 | — | ⬜ |
+| 19 | `route/my.php:thread` | GET | `page`、`bbs_mythread` 主题列表 | `GET /my/threads` | 🟡 分页已实现 |
+| 20 | `route/my.php:avatar` | GET/POST | `width/height/data`、头像文件 | `/my/avatar` | ✅ |
 | 21 | `route/user.php` 默认 | GET | `uid`、公开资料 | `GET /user/:uid` | ✅ 基础资料 |
-| 22 | `route/user.php:thread` | GET | `uid/page`、公开主题 | `GET /user/:uid/threads` | 🟡 缺分页和板块访问过滤 |
+| 22 | `route/user.php:thread` | GET | `uid/page`、公开主题 | `GET /user/:uid/threads` | 🟡 分页已实现和板块访问过滤 |
 | 23 | `route/user.php:login` | GET/POST | 浏览器先 MD5；PHP 再 `md5(clientHash+salt)` | `ALL /login` | 🟡 原版客户端哈希协议已强制执行并实测；未复用 PHP token |
 | 24 | `route/user.php:create` | GET/POST | 邮箱、用户名、密码、可选验证码 | `ALL /register` | 🟡 浏览器只提交客户端哈希；无验证码注册与 PHP 登录已交叉验证，SMTP 分支待实投 |
 | 25 | `route/user.php:logout` | GET | Session 与 token 清理 | `POST /logout` | 🟡 Go Session 已实现，PHP token 不复用 |
@@ -70,18 +70,18 @@
 | 51 | `admin/route/thread.php:operation/open` | POST/GET | 从队列批量打开 | `/admin/?thread-operation-open.htm`、`POST /admin/thread/:tid/close` | 🟡 已实现队列批量打开；操作日志仍待逐项对齐 |
 | 52 | `admin/route/thread.php:found` | GET | 队列结果分页 | `/admin/?thread-found-{page}.htm` | 🟡 已实现队列结果和分页，待浏览器交叉验收 |
 | 53 | `admin/route/other.php:cache` | GET/POST | 重建 runtime、清 upload/tmp | `/admin/?other-cache.htm` | ✅ 单 Go 维护工具；不再以 PHP 编译缓存为准 |
-| 54 | `admin/route/plugin.php:local` | GET | 本地插件列表 | `/admin/?plugin-local.htm` | 🟡 已读取 `plugin/*/conf.json` 并展示本地状态；不执行 PHP Hook |
-| 55 | `admin/route/plugin.php:official_fee` | GET | 官方收费插件分页 | — | ⬜ |
-| 56 | `admin/route/plugin.php:official_free` | GET | 官方免费插件分页 | — | ⬜ |
-| 57 | `admin/route/plugin.php:read` | GET | 插件详情和购买状态 | — | ⬜ |
-| 58 | `admin/route/plugin.php:is_bought` | GET | 购买状态查询 | — | ⬜ |
-| 59 | `admin/route/plugin.php:download` | GET/POST | 下载并解压官方插件 | — | ⬜ |
-| 60 | `admin/route/plugin.php:install` | GET/POST | 依赖检查、安装脚本、同类互斥 | `/admin/?plugin-install-{dir}.htm` | 🟡 本地配置状态、依赖检查和同类互斥已实现；不执行 `install.php` |
-| 61 | `admin/route/plugin.php:unstall` | GET/POST | 依赖检查、卸载脚本 | `/admin/?plugin-unstall-{dir}.htm` | 🟡 本地配置状态和反向依赖检查已实现；不执行 `unstall.php` |
-| 62 | `admin/route/plugin.php:enable` | GET/POST | 启用插件 | `/admin/?plugin-enable-{dir}.htm` | 🟡 可更新本地启用状态；Go 尚无 PHP Hook/Overwrite 执行层 |
-| 63 | `admin/route/plugin.php:disable` | GET/POST | 禁用插件 | `/admin/?plugin-disable-{dir}.htm` | 🟡 可更新本地禁用状态和检查依赖；Go 尚无 PHP Hook/Overwrite 执行层 |
-| 64 | `admin/route/plugin.php:upgrade` | GET/POST | 下载、升级与升级脚本 | — | ⬜ |
-| 65 | `admin/route/plugin.php:setting` | GET/POST | 执行插件自带设置入口 | — | ⬜ |
+| 54 | `admin/route/plugin.php:local` | GET | 本地插件列表 | `/admin/?plugin-local.htm` | ❌ 不支持 PHP 插件 |
+| 55 | `admin/route/plugin.php:official_fee` | GET | 官方收费插件分页 | — | ❌ 不支持 PHP 插件 |
+| 56 | `admin/route/plugin.php:official_free` | GET | 官方免费插件分页 | — | ❌ 不支持 PHP 插件 |
+| 57 | `admin/route/plugin.php:read` | GET | 插件详情和购买状态 | — | ❌ 不支持 PHP 插件 |
+| 58 | `admin/route/plugin.php:is_bought` | GET | 购买状态查询 | — | ❌ 不支持 PHP 插件 |
+| 59 | `admin/route/plugin.php:download` | GET/POST | 下载并解压官方插件 | — | ❌ 不支持 PHP 插件 |
+| 60 | `admin/route/plugin.php:install` | GET/POST | 依赖检查、安装脚本、同类互斥 | `/admin/?plugin-install-{dir}.htm` | ❌ 不支持 PHP 插件 |
+| 61 | `admin/route/plugin.php:unstall` | GET/POST | 依赖检查、卸载脚本 | `/admin/?plugin-unstall-{dir}.htm` | ❌ 不支持 PHP 插件 |
+| 62 | `admin/route/plugin.php:enable` | GET/POST | 启用插件 | `/admin/?plugin-enable-{dir}.htm` | ❌ 不支持 PHP 插件 |
+| 63 | `admin/route/plugin.php:disable` | GET/POST | 禁用插件 | `/admin/?plugin-disable-{dir}.htm` | ❌ 不支持 PHP 插件 |
+| 64 | `admin/route/plugin.php:upgrade` | GET/POST | 下载、升级与升级脚本 | — | ❌ 不支持 PHP 插件 |
+| 65 | `admin/route/plugin.php:setting` | GET/POST | 执行插件自带设置入口 | — | ❌ 不支持 PHP 插件 |
 
 ## 统计口径
 
