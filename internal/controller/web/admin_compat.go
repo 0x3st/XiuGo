@@ -42,7 +42,7 @@ func (c *Controller) AdminCompat(r *ghttp.Request) {
 	}
 	if route == "index" && action == "logout" {
 		r.Session.MustRemove(adminVerifiedAtSession)
-		r.Response.RedirectTo("/admin/?index-login.htm")
+		r.Response.RedirectTo("/admin/login")
 		return
 	}
 	if !c.adminCompatVerified(r) {
@@ -75,6 +75,71 @@ func (c *Controller) AdminCompat(r *ghttp.Request) {
 	default:
 		c.adminCompatDashboard(r, user)
 	}
+}
+
+
+// AdminLogin is the secondary password gate at /admin/login.
+func (c *Controller) AdminLogin(r *ghttp.Request) {
+	user := c.currentUser(r)
+	if user.Uid == 0 || user.Gid != 1 {
+		r.Response.RedirectTo("/login")
+		return
+	}
+	c.adminCompatLogin(r, user)
+}
+
+// AdminSettings serves site settings at /admin/settings.
+func (c *Controller) AdminSettings(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	c.adminCompatSetting(r, user, "base")
+}
+
+// AdminSettingsSMTP serves SMTP settings at /admin/settings/smtp.
+func (c *Controller) AdminSettingsSMTP(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	c.adminCompatSMTP(r, user)
+}
+
+// AdminMaintenance serves runtime maintenance at /admin/maintenance.
+func (c *Controller) AdminMaintenance(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	c.adminCompatOther(r, user, "cache")
+}
+
+// AdminRuntime shows process/environment info at /admin/runtime.
+func (c *Controller) AdminRuntime(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	c.adminCompatRuntimeInfo(r, user)
+}
+
+func (c *Controller) requireVerifiedAdmin(r *ghttp.Request) (view.User, bool) {
+	user := c.currentUser(r)
+	if user.Uid == 0 || user.Gid != 1 {
+		r.Response.RedirectTo("/login")
+		return user, false
+	}
+	if !c.adminCompatVerified(r) {
+		// Preserve return path lightly: always secondary login page.
+		if r.Method == http.MethodGet {
+			r.Response.RedirectTo("/admin/login")
+			return user, false
+		}
+		c.adminCompatLogin(r, user)
+		return user, false
+	}
+	return user, true
 }
 
 func (c *Controller) adminCompatLogin(r *ghttp.Request, user view.User) {
