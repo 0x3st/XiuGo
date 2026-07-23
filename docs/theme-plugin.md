@@ -28,8 +28,15 @@ XiuGo 自有扩展体系，**不兼容** Xiuno PHP 主题/插件（无 Hook/Over
 | Hook | 事件 |
 |------|------|
 | `app.boot` | 启动 |
-| `page.render` | 渲染前台页（可改 ExtraCSS/FooterHTML） |
-| `thread.viewed` | 预留 |
-| `reply.created` | 预留 |
+| `page.render` | 渲染前台页（ExtraCSS/FooterHTML） |
+| `thread.viewed` | 看帖浏览数更新后 |
+| `thread.created` | 发主题成功 |
+| `reply.created` | 回帖成功 |
+| `post.updated` / `post.deleted` | 编辑/删除帖 |
 
 热插拔 `.so` / PHP 插件目录 **不在范围**。扩展以编译进主程序的 Go 包为主。
+
+主题可覆盖 HTML：`resource/themes/<id>/templates/` 下镜像 `resource/template/` 路径。
+
+
+更完整的 URL↔模板↔Hook 表见 [dev-map.md](dev-map.md)。

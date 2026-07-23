@@ -22,6 +22,7 @@ import (
 	"github.com/0x3st/XiuGo/internal/model/do"
 	"github.com/0x3st/XiuGo/internal/model/entity"
 	"github.com/0x3st/XiuGo/internal/model/view"
+	"github.com/0x3st/XiuGo/internal/plugin"
 )
 
 type Service struct{}
@@ -526,6 +527,8 @@ func (s *Service) Thread(ctx context.Context, tid uint, viewer view.User, pageNu
 		Where(do.BbsThread{Tid: tid}).
 		Data(do.BbsThread{Views: gdb.Raw("views + 1")}).
 		Update()
+	page.Thread.Views++
+	_ = plugin.Global().Fire(ctx, plugin.HookThreadViewed, &plugin.ThreadViewedEvent{Tid: tid, Uid: viewer.Uid})
 	return page, nil
 }
 
@@ -670,6 +673,7 @@ func (s *Service) CreateThread(
 	if err = s.SyncPHPRuntime(ctx, map[string]int{"todaythreads": 1}); err != nil {
 		return 0, err
 	}
+	_ = plugin.Global().Fire(ctx, plugin.HookThreadCreated, &plugin.ThreadCreatedEvent{Tid: uint(threadID), Fid: fid, Uid: uid})
 	return uint(threadID), nil
 }
 
@@ -750,6 +754,7 @@ func (s *Service) Reply(
 	if err = s.SyncPHPRuntime(ctx, map[string]int{"todayposts": 1}); err != nil {
 		return 0, err
 	}
+	_ = plugin.Global().Fire(ctx, plugin.HookReplyCreated, &plugin.ReplyCreatedEvent{Tid: tid, Pid: uint(postID), Uid: uid})
 	return uint(postID), nil
 }
 
@@ -905,6 +910,7 @@ func (s *Service) UpdatePost(
 	if err = s.AssociatePendingAttachments(ctx, pid, uid, pending); err != nil {
 		return 0, err
 	}
+	_ = plugin.Global().Fire(ctx, plugin.HookPostUpdated, &plugin.PostUpdatedEvent{Pid: pid, Tid: post.Tid, Uid: uid})
 	return post.Tid, nil
 }
 
@@ -933,6 +939,7 @@ func (s *Service) DeletePost(ctx context.Context, pid, uid uint) (tid uint, err 
 		if err = s.DeleteThread(ctx, post.Tid, uid); err != nil {
 			return 0, err
 		}
+		_ = plugin.Global().Fire(ctx, plugin.HookPostDeleted, &plugin.PostDeletedEvent{Pid: pid, Tid: 0, Uid: uid})
 		return 0, nil
 	}
 	if err = s.deleteReplyOriginal(ctx, post); err != nil {
@@ -941,6 +948,7 @@ func (s *Service) DeletePost(ctx context.Context, pid, uid uint) (tid uint, err 
 	if err = s.SyncPHPRuntime(ctx, nil); err != nil {
 		return 0, err
 	}
+	_ = plugin.Global().Fire(ctx, plugin.HookPostDeleted, &plugin.PostDeletedEvent{Pid: pid, Tid: post.Tid, Uid: uid})
 	return post.Tid, nil
 }
 

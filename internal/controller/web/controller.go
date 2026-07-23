@@ -189,7 +189,9 @@ func (c *Controller) renderPage(r *ghttp.Request, template string, params gview.
 	if len(ev.ExtraJS) > 0 {
 		params["PluginJS"] = ev.ExtraJS
 	}
-	return r.Response.WriteTpl(template, params)
+	// Active theme may override templates under resource/themes/<id>/templates/...
+	tpl := theme.Global().ResolveTemplate(template)
+	return r.Response.WriteTpl(tpl, params)
 }
 
 func forumArrJSON(forums []view.ForumSummary) string {

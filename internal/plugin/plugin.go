@@ -28,10 +28,13 @@ type Plugin interface {
 
 // Hook names used by core. Plugins register handlers via Manager.On.
 const (
-	HookPageRender   = "page.render"   // *PageRenderEvent
-	HookThreadViewed = "thread.viewed" // *ThreadViewedEvent
-	HookReplyCreated = "reply.created" // *ReplyCreatedEvent
-	HookBoot         = "app.boot"      // nil
+	HookPageRender     = "page.render"      // *PageRenderEvent
+	HookThreadViewed   = "thread.viewed"    // *ThreadViewedEvent
+	HookThreadCreated  = "thread.created"   // *ThreadCreatedEvent
+	HookReplyCreated   = "reply.created"    // *ReplyCreatedEvent
+	HookPostUpdated    = "post.updated"     // *PostUpdatedEvent
+	HookPostDeleted    = "post.deleted"     // *PostDeletedEvent
+	HookBoot           = "app.boot"         // nil
 )
 
 // PageRenderEvent is fired before writing a public HTML page.
@@ -54,6 +57,25 @@ type ReplyCreatedEvent struct {
 	Tid uint
 	Pid uint
 	Uid uint
+}
+
+type ThreadCreatedEvent struct {
+	Tid uint
+	Fid uint
+	Uid uint
+}
+
+type PostUpdatedEvent struct {
+	Pid uint
+	Tid uint
+	Uid uint
+}
+
+type PostDeletedEvent struct {
+	Pid uint
+	Tid uint
+	Uid uint
+	// Tid==0 means entire thread removed with first post.
 }
 
 type Handler func(ctx context.Context, event any) error

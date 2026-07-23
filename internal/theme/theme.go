@@ -167,3 +167,28 @@ func (m *Manager) Stylesheets() []string {
 	}
 	return urls
 }
+
+// ResolveTemplate returns an absolute template path if the active theme
+// overrides it under templates/<rel>, otherwise returns rel unchanged.
+// rel is like "pages/home.html".
+func (m *Manager) ResolveTemplate(rel string) string {
+	rel = strings.TrimPrefix(filepath.ToSlash(rel), "/")
+	t := m.Active()
+	if t.ID == "" || t.ID == DefaultID || t.Dir == "" {
+		// Still allow default theme overrides if present.
+	}
+	if t.Dir == "" {
+		return rel
+	}
+	candidate := filepath.Join(t.Dir, "templates", filepath.FromSlash(rel))
+	if st, err := os.Stat(candidate); err == nil && !st.IsDir() {
+		return candidate
+	}
+	return rel
+}
+
+// HasTemplateOverride reports whether active theme ships templates/<rel>.
+func (m *Manager) HasTemplateOverride(rel string) bool {
+	resolved := m.ResolveTemplate(rel)
+	return resolved != rel && filepath.IsAbs(resolved)
+}
