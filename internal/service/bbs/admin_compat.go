@@ -400,3 +400,47 @@ func diskFreeSpace(path string) string {
 		return fmt.Sprintf("%dB", bytes)
 	}
 }
+
+const (
+	kvActiveTheme   = "xiugo_theme"
+	kvPluginEnabled = "xiugo_plugins"
+)
+
+// LoadActiveThemeID returns persisted theme id for theme.Init.
+func (s *Service) LoadActiveThemeID(ctx context.Context) (string, error) {
+	raw, ok, err := s.loadKV(ctx, kvActiveTheme)
+	if err != nil || !ok || raw == "" {
+		return "", err
+	}
+	var id string
+	if err := json.Unmarshal([]byte(raw), &id); err != nil {
+		return strings.Trim(raw, "\""), nil
+	}
+	return id, nil
+}
+
+// SaveActiveThemeID persists theme selection (JSON string).
+func (s *Service) SaveActiveThemeID(ctx context.Context, id string) error {
+	return s.saveKV(ctx, kvActiveTheme, id)
+}
+
+// LoadPluginEnabledMap returns plugin id -> enabled.
+func (s *Service) LoadPluginEnabledMap(ctx context.Context) map[string]bool {
+	raw, ok, err := s.loadKV(ctx, kvPluginEnabled)
+	if err != nil || !ok || raw == "" {
+		return map[string]bool{}
+	}
+	var m map[string]bool
+	if json.Unmarshal([]byte(raw), &m) != nil || m == nil {
+		return map[string]bool{}
+	}
+	return m
+}
+
+// SavePluginEnabledMap persists plugin enable flags.
+func (s *Service) SavePluginEnabledMap(ctx context.Context, m map[string]bool) error {
+	if m == nil {
+		m = map[string]bool{}
+	}
+	return s.saveKV(ctx, kvPluginEnabled, m)
+}

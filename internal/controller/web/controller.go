@@ -2,7 +2,7 @@ package web
 
 import (
 	"fmt"
-	"html/template"
+	htmltemplate "html/template"
 	"net"
 	"net/http"
 	"strconv"
@@ -12,6 +12,8 @@ import (
 	"github.com/gogf/gf/v2/os/gview"
 
 	"github.com/0x3st/XiuGo/internal/model/view"
+	"github.com/0x3st/XiuGo/internal/plugin"
+	"github.com/0x3st/XiuGo/internal/theme"
 	bbsService "github.com/0x3st/XiuGo/internal/service/bbs"
 )
 
@@ -57,6 +59,8 @@ func (c *Controller) Bind(group *ghttp.RouterGroup) {
 	group.ALL("/admin/settings/smtp", c.AdminSettingsSMTP)
 	group.ALL("/admin/maintenance", c.AdminMaintenance)
 	group.GET("/admin/runtime", c.AdminRuntime)
+	group.ALL("/admin/themes", c.AdminThemes)
+	group.ALL("/admin/plugins", c.AdminPlugins)
 	group.GET("/admin/threads", c.AdminThreads)
 	group.POST("/admin/thread/:tid/close", c.AdminThreadClose)
 	group.POST("/admin/thread/:tid/delete", c.AdminThreadDelete)
@@ -169,6 +173,22 @@ func (c *Controller) renderPage(r *ghttp.Request, template string, params gview.
 	if _, ok := params["HeaderDescription"]; !ok {
 		params["HeaderDescription"] = settings.Sitebrief
 	}
+	// Theme stylesheets (active skin).
+	params["ThemeID"] = theme.Global().ActiveID()
+	params["ThemeCSS"] = theme.Global().Stylesheets()
+	// Plugin page hook
+	ev := &plugin.PageRenderEvent{
+		Template: template,
+		Params:   map[string]any{},
+	}
+	_ = plugin.Global().Fire(r.Context(), plugin.HookPageRender, ev)
+	params["PluginFooterHTML"] = htmltemplate.HTML(ev.FooterHTML)
+	if len(ev.ExtraCSS) > 0 {
+		params["PluginCSS"] = ev.ExtraCSS
+	}
+	if len(ev.ExtraJS) > 0 {
+		params["PluginJS"] = ev.ExtraJS
+	}
 	return r.Response.WriteTpl(template, params)
 }
 
@@ -208,7 +228,7 @@ func (c *Controller) Home(r *ghttp.Request) {
 		"Title": settings.Sitename, "Forums": forums, "NavForums": forums, "Threads": threads,
 		"Stats": stats, "User": user, "ActiveFid": 0, "HaveAllowTop": haveAllowTop,
 		"Pagination": pager,
-		"ExtraJS": template.HTML(`<script>$('li[data-active="fid-0"]').addClass('active');</script>`),
+		"ExtraJS": htmltemplate.HTML(`<script>$('li[data-active="fid-0"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -245,7 +265,7 @@ func (c *Controller) Forum(r *ghttp.Request) {
 		"Threads": threads, "User": user, "ActiveFid": fid, "Orderby": orderby, "HaveAllowTop": haveAllowTop,
 		"Pagination": pager,
 		"MobileTitle": forum.Name, "MobileLink": "/forum/" + strconv.FormatUint(uint64(fid), 10),
-		"ExtraJS": template.HTML(fmt.Sprintf(`<script>$('li[data-active="fid-%d"]').addClass('active');</script>`, fid)),
+		"ExtraJS": htmltemplate.HTML(fmt.Sprintf(`<script>$('li[data-active="fid-%d"]').addClass('active');</script>`, fid)),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -276,7 +296,7 @@ func (c *Controller) Thread(r *ghttp.Request) {
 		"Page": page, "User": user, "ActiveFid": fid,
 		"MobileTitle": page.Thread.Subject,
 		"MobileLink": "/thread/" + strconv.FormatUint(uint64(page.Thread.Tid), 10),
-		"ExtraJS": template.HTML(extra),
+		"ExtraJS": htmltemplate.HTML(extra),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -459,7 +479,7 @@ func (c *Controller) EditPost(r *ghttp.Request) {
 	if err = c.renderPage(r, "pages/post_edit.html", gview.Params{
 		"Title": "编辑帖子", "Post": post, "User": user, "Forums": forums,
 		"Pending": c.pendingAttachments(r), "ActiveFid": post.Fid,
-		"ExtraJS": template.HTML(postFormExtraJS(loc, uint(post.Fid), false)),
+		"ExtraJS": htmltemplate.HTML(postFormExtraJS(loc, uint(post.Fid), false)),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -528,7 +548,7 @@ func (c *Controller) Reply(r *ghttp.Request) {
 		params := gview.Params{
 			"Pid": post.Pid, "Tid": post.Tid, "Uid": post.Uid, "Username": post.Username,
 			"AvatarURL": post.AvatarURL, "CreateTime": post.CreateTime,
-			"MessageFmt": template.HTML(post.MessageFmt),
+			"MessageFmt": htmltemplate.HTML(post.MessageFmt),
 			"Floor": post.Floor, "CanQuote": post.CanQuote, "CanEdit": post.CanEdit, "CanDelete": post.CanDelete,
 			"Files": post.Files,
 		}
@@ -631,7 +651,7 @@ func (c *Controller) Login(r *ghttp.Request) {
 		"Title":   "用户登录",
 		"User":    c.currentUser(r),
 		"Referer": referer,
-		"ExtraJS": template.HTML(loginPageScript(referer)),
+		"ExtraJS": htmltemplate.HTML(loginPageScript(referer)),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -709,7 +729,7 @@ func (c *Controller) CreateThread(r *ghttp.Request) {
 		"Title": "发帖", "User": user, "Forums": forums, "ActiveFid": fid,
 		"IsFirst": true, "FormTitle": "发表主题", "FormAction": "/thread/create",
 		"SubmitText": "发表主题", "Doctype": 1, "Pending": c.pendingAttachments(r),
-		"ExtraJS": template.HTML(postFormExtraJS("__forum__", fid, true)),
+		"ExtraJS": htmltemplate.HTML(postFormExtraJS("__forum__", fid, true)),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -724,7 +744,7 @@ func (c *Controller) UserProfile(r *ghttp.Request) {
 	}
 	if err = c.renderPage(r, "pages/user_profile.html", gview.Params{
 		"Title": profile.Username, "Profile": profile, "User": user, "Mine": false,
-		"ExtraJS": template.HTML(`<script>$('a[data-active="menu-user"]').addClass('active');$('a[data-active="user-profile"]').addClass('active');</script>`),
+		"ExtraJS": htmltemplate.HTML(`<script>$('a[data-active="menu-user"]').addClass('active');$('a[data-active="user-profile"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -765,7 +785,7 @@ func (c *Controller) UserThreads(r *ghttp.Request) {
 	if err = c.renderPage(r, "pages/user_threads.html", gview.Params{
 		"Title": profile.Username, "Profile": profile,
 		"Threads": threads, "User": user, "Mine": false, "Pagination": pager,
-		"ExtraJS": template.HTML(`<script>$('a[data-active="menu-user-thread"]').addClass('active');$('a[data-active="user-thread"]').addClass('active');</script>`),
+		"ExtraJS": htmltemplate.HTML(`<script>$('a[data-active="menu-user-thread"]').addClass('active');$('a[data-active="user-thread"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -784,7 +804,7 @@ func (c *Controller) MyProfile(r *ghttp.Request) {
 	}
 	if err = c.renderPage(r, "pages/user_profile.html", gview.Params{
 		"Title": "个人中心", "Profile": profile, "User": user, "Mine": true,
-		"ExtraJS": template.HTML(`<script>$('a[data-active="menu-my"]').addClass('active');$('a[data-active="my-profile"]').addClass('active');</script>`),
+		"ExtraJS": htmltemplate.HTML(`<script>$('a[data-active="menu-my"]').addClass('active');$('a[data-active="my-profile"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -817,7 +837,7 @@ func (c *Controller) MyThreads(r *ghttp.Request) {
 	settings, _ := c.service.SiteSettings(r.Context())
 	if err = c.renderPage(r, "pages/user_threads.html", gview.Params{
 		"Title": settings.Sitename, "Profile": profile, "Threads": threads, "User": user, "Mine": true, "Pagination": pager,
-		"ExtraJS": template.HTML(`<script>$('a[data-active="menu-my-thread"]').addClass('active');$('a[data-active="my-thread"]').addClass('active');</script>`),
+		"ExtraJS": htmltemplate.HTML(`<script>$('a[data-active="menu-my-thread"]').addClass('active');$('a[data-active="my-thread"]').addClass('active');</script>`),
 	}); err != nil {
 		c.fail(r, err)
 	}
@@ -853,7 +873,7 @@ func (c *Controller) MyPassword(r *ghttp.Request) {
 	settings, _ := c.service.SiteSettings(r.Context())
 	if err := c.renderPage(r, "pages/my_password.html", gview.Params{
 		"Title": settings.Sitename, "User": user,
-		"ExtraJS": template.HTML(`<script src="/view/js/md5.js"></script>
+		"ExtraJS": htmltemplate.HTML(`<script src="/view/js/md5.js"></script>
 <script>
 $('a[data-active="menu-my"]').addClass('active');
 $('a[data-active="my-password"]').addClass('active');
@@ -909,7 +929,7 @@ func (c *Controller) MyAvatar(r *ghttp.Request) {
 	settings, _ := c.service.SiteSettings(r.Context())
 	if err := c.renderPage(r, "pages/my_avatar.html", gview.Params{
 		"Title": settings.Sitename, "User": user,
-		"ExtraJS": template.HTML(`<script>
+		"ExtraJS": htmltemplate.HTML(`<script>
 $('a[data-active="menu-my"]').addClass('active');
 $('a[data-active="my-avatar"]').addClass('active');
 var javatar_upload = $('#avatar_upload');
@@ -1097,7 +1117,7 @@ func (c *Controller) AdvancedReply(r *ghttp.Request) {
 		"SubmitText": "回帖", "Doctype": 1, "QuotePID": quotePID,
 		"ActiveFid": uint(page.Thread.Fid), "Pending": c.pendingAttachments(r),
 		"MobileTitle": "回帖", "MobileLink": "/thread/" + strconv.FormatUint(uint64(tid), 10),
-		"ExtraJS": template.HTML(postFormExtraJS("/thread/"+strconv.FormatUint(uint64(tid), 10), uint(page.Thread.Fid), false)),
+		"ExtraJS": htmltemplate.HTML(postFormExtraJS("/thread/"+strconv.FormatUint(uint64(tid), 10), uint(page.Thread.Fid), false)),
 	}); err != nil {
 		c.fail(r, err)
 	}

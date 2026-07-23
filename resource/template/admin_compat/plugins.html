@@ -1,0 +1,42 @@
+{{include "admin_compat/header.html" .}}
+<div class="row"><div class="col-lg-10 mx-auto">
+  <div class="card"><div class="card-body">
+    <h4>扩展 Plugin</h4>
+    <p class="text-muted small">Go 原生扩展（进程内 Hook）。<strong>不能</strong>安装或运行 Xiuno 的 PHP 插件。</p>
+    <div class="table-responsive">
+      <table class="table">
+        <thead><tr><th>ID</th><th>名称</th><th>版本</th><th>说明</th><th>状态</th><th></th></tr></thead>
+        <tbody>
+        {{range .Plugins}}
+        <tr>
+          <td><code>{{.ID}}</code></td>
+          <td>{{.Name}}</td>
+          <td>{{.Version}}</td>
+          <td class="small">{{.Description}}</td>
+          <td>{{if .Enabled}}<span class="badge badge-success">启用</span>{{else}}<span class="badge badge-secondary">停用</span>{{end}}</td>
+          <td class="text-nowrap">
+            {{if .Enabled}}
+            <button class="btn btn-sm btn-outline-secondary plugin-toggle" data-id="{{.ID}}" data-enable="0">停用</button>
+            {{else}}
+            <button class="btn btn-sm btn-primary plugin-toggle" data-id="{{.ID}}" data-enable="1">启用</button>
+            {{end}}
+          </td>
+        </tr>
+        {{else}}
+        <tr><td colspan="6" class="text-muted">暂无已注册扩展。在 <code>internal/plugin/builtin</code> 用 <code>plugin.Register</code> 添加。</td></tr>
+        {{end}}
+        </tbody>
+      </table>
+    </div>
+  </div></div>
+</div></div>
+{{include "admin_compat/footer.html" .}}
+<script>
+$('.plugin-toggle').on('click', function(){
+  var id=$(this).data('id'), enable=$(this).data('enable');
+  $.xpost('/admin/plugins', {id:id, enable:enable}, function(code, message){
+    if(code==0){ $.alert(message); setTimeout(function(){ location.reload(); }, 400); }
+    else alert(message);
+  });
+});
+</script>

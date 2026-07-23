@@ -12,6 +12,12 @@
 <link rel="Bookmark" href="/view/img/favicon.ico" />
 <link rel="stylesheet" href="/view/css/bootstrap.css?1.0">
 <link rel="stylesheet" href="/view/css/bootstrap-bbs.css?1.0">
+{{range .ThemeCSS}}
+<link rel="stylesheet" href="{{.}}">
+{{end}}
+{{range .PluginCSS}}
+<link rel="stylesheet" href="{{.}}">
+{{end}}
 </head>
 <body>
 {{include "layout/header_nav.html" .}}

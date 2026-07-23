@@ -12,6 +12,8 @@ import (
 	"github.com/gogf/gf/v2/os/gview"
 
 	"github.com/0x3st/XiuGo/internal/model/view"
+	"github.com/0x3st/XiuGo/internal/plugin"
+	"github.com/0x3st/XiuGo/internal/theme"
 )
 
 const adminVerifiedAtSession = "xiuno_go_admin_verified_at"
@@ -122,6 +124,56 @@ func (c *Controller) AdminRuntime(r *ghttp.Request) {
 		return
 	}
 	c.adminCompatRuntimeInfo(r, user)
+}
+
+
+func (c *Controller) AdminThemes(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	if r.Method == http.MethodPost {
+		id := strings.TrimSpace(r.GetForm("theme").String())
+		if err := theme.Global().SetActive(id); err != nil {
+			c.writeXiunoMessage(r, -1, "主题不存在")
+			return
+		}
+		if err := c.service.SaveActiveThemeID(r.Context(), theme.Global().ActiveID()); err != nil {
+			c.writeXiunoMessage(r, -1, err.Error())
+			return
+		}
+		c.writeXiunoMessage(r, 0, "主题已切换")
+		return
+	}
+	c.writeAdminCompatTemplate(r, "admin_compat/themes.html", gview.Params{
+		"Title": "主题", "Active": "themes", "User": user,
+		"Themes": theme.Global().List(), "ActiveTheme": theme.Global().ActiveID(),
+	})
+}
+
+func (c *Controller) AdminPlugins(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	if r.Method == http.MethodPost {
+		id := strings.TrimSpace(r.GetForm("id").String())
+		enable := r.GetForm("enable").String() == "1"
+		if err := plugin.Global().SetEnabled(r.Context(), id, enable); err != nil {
+			c.writeXiunoMessage(r, -1, err.Error())
+			return
+		}
+		if err := c.service.SavePluginEnabledMap(r.Context(), plugin.Global().EnabledMap()); err != nil {
+			c.writeXiunoMessage(r, -1, err.Error())
+			return
+		}
+		c.writeXiunoMessage(r, 0, "已更新")
+		return
+	}
+	c.writeAdminCompatTemplate(r, "admin_compat/plugins.html", gview.Params{
+		"Title": "扩展", "Active": "plugins", "User": user,
+		"Plugins": plugin.Global().List(),
+	})
 }
 
 func (c *Controller) requireVerifiedAdmin(r *ghttp.Request) (view.User, bool) {

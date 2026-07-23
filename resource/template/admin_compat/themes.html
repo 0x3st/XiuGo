@@ -1,0 +1,34 @@
+{{include "admin_compat/header.html" .}}
+<div class="row"><div class="col-lg-10 mx-auto">
+  <div class="card"><div class="card-body">
+    <h4>主题 Theme</h4>
+    <p class="text-muted small">XiuGo 自有皮肤系统（resource/themes）。与 Xiuno PHP 主题/插件 <strong>不兼容</strong>。</p>
+    <form id="form" method="post" action="/admin/themes">
+      <div class="list-group mb-3">
+        {{range .Themes}}
+        <label class="list-group-item list-group-item-action d-flex align-items-center">
+          <input type="radio" name="theme" value="{{.ID}}" class="mr-3" {{if eq .ID $.ActiveTheme}}checked{{end}}>
+          <div>
+            <div><strong>{{.Name}}</strong> <code class="text-muted">{{.ID}}</code> <small>v{{.Version}}</small></div>
+            <div class="small text-muted">{{.Description}}</div>
+          </div>
+        </label>
+        {{end}}
+      </div>
+      <button class="btn btn-primary" id="submit" type="submit">应用主题</button>
+    </form>
+  </div></div>
+</div></div>
+{{include "admin_compat/footer.html" .}}
+<script>
+$('#form').on('submit', function(e){
+  e.preventDefault();
+  var f=$(this), s=$('#submit');
+  s.button('loading');
+  $.xpost(f.attr('action'), f.serialize(), function(code, message){
+    if(code==0){ $.alert(message); setTimeout(function(){ location.reload(); }, 400); }
+    else { alert(message); s.button('reset'); }
+  });
+  return false;
+});
+</script>

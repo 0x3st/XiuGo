@@ -1,0 +1,7 @@
+{
+  "name": "HiFi-like",
+  "version": "1.0.0",
+  "author": "XiuGo",
+  "description": "灵感来自音乐类 Xiuno 站常见皮肤：灰蓝背景、蓝色列表顶栏与主按钮（非官方复制）",
+  "css": ["css/theme.css"]
+}
