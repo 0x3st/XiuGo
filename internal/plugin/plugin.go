@@ -34,6 +34,7 @@ const (
 	HookReplyCreated   = "reply.created"    // *ReplyCreatedEvent
 	HookPostUpdated    = "post.updated"     // *PostUpdatedEvent
 	HookPostDeleted    = "post.deleted"     // *PostDeletedEvent
+	HookAdminRender    = "admin.render"     // *AdminRenderEvent
 	HookBoot           = "app.boot"         // nil
 )
 
