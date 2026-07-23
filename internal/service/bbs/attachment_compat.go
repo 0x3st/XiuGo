@@ -346,9 +346,11 @@ func (s *Service) uploadRoot(ctx context.Context) string {
 
 func (s *Service) originalAttachmentDateLayout(ctx context.Context) string {
 	rule := "Ym"
-	if content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php")); err == nil {
-		if configured := phpConfigString(content, "attach_dir_save_rule"); configured != "" {
-			rule = configured
+	if root := s.phpRoot(ctx); root != "" {
+		if content, err := os.ReadFile(filepath.Join(root, "conf", "conf.php")); err == nil {
+			if configured := phpConfigString(content, "attach_dir_save_rule"); configured != "" {
+				rule = configured
+			}
 		}
 	}
 	var layout strings.Builder
@@ -366,12 +368,6 @@ func (s *Service) originalAttachmentDateLayout(ctx context.Context) string {
 			layout.WriteString("02")
 		case 'j':
 			layout.WriteString("2")
-		case 'H':
-			layout.WriteString("15")
-		case 'i':
-			layout.WriteString("04")
-		case 's':
-			layout.WriteString("05")
 		default:
 			layout.WriteRune(token)
 		}

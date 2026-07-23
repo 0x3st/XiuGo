@@ -19,15 +19,16 @@
       <ul class="navbar-nav mr-auto">
         <li class="nav-item home {{if eq .Active "home"}}active{{end}}"><a class="nav-link" href="/admin/"><i class="icon-home"></i> 后台</a></li>
         <li class="nav-item nav-item-setting {{if eq .Active "setting"}}active{{end}}"><a class="nav-link" href="/admin/?setting-base.htm"><i class="icon-cog"></i> 设置</a></li>
-        <li class="nav-item nav-item-forum {{if eq .Active "forum"}}active{{end}}"><a class="nav-link" href="/admin/?forum-list.htm"><i class="icon-comment"></i> 版块</a></li>
-        <li class="nav-item nav-item-thread {{if eq .Active "thread"}}active{{end}}"><a class="nav-link" href="/admin/?thread-list.htm"><i class="icon-comment"></i> 主题</a></li>
-        <li class="nav-item nav-item-user {{if eq .Active "user"}}active{{end}}"><a class="nav-link" href="/admin/?user-list.htm"><i class="icon-user"></i> 用户</a></li>
-        <li class="nav-item nav-item-other {{if eq .Active "other"}}active{{end}}"><a class="nav-link" href="/admin/?other.htm"><i class="icon-wrench"></i> 其他</a></li>
+        <li class="nav-item nav-item-forum {{if eq .Active "forum"}}active{{end}}"><a class="nav-link" href="/admin/forums"><i class="icon-comment"></i> 版块</a></li>
+        <li class="nav-item nav-item-thread {{if eq .Active "thread"}}active{{end}}"><a class="nav-link" href="/admin/threads"><i class="icon-comment"></i> 主题</a></li>
+        <li class="nav-item nav-item-user {{if eq .Active "user"}}active{{end}}"><a class="nav-link" href="/admin/users"><i class="icon-user"></i> 用户</a></li>
+        <li class="nav-item"><a class="nav-link" href="/admin/groups"><i class="icon-users"></i> 用户组</a></li>
+        <li class="nav-item nav-item-other {{if eq .Active "other"}}active{{end}}"><a class="nav-link" href="/admin/?other.htm"><i class="icon-wrench"></i> 维护</a></li>
       </ul>
       <ul class="navbar-nav">
         <li class="nav-item"><a class="nav-link" href="/my"><img class="avatar-1" src="/view/img/avatar.png"> {{.User.Username}}</a></li>
         <li class="nav-item"><a class="nav-link" href="/"><i class="icon-home"></i> 前台</a></li>
-        <li class="nav-item"><a class="nav-link" href="/admin/?index-logout.htm"><i class="icon-sign-out"></i> 退出</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout"><i class="icon-sign-out"></i> 退出</a></li>
       </ul>
     </div>
   </div>

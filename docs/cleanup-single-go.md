@@ -49,3 +49,9 @@
 - SMTP：`bbs_kv.k = xiugo_smtp`（JSON）
 - 首次启动可从旧 `conf.php` / `smtp.conf.php` **导入一次**，之后后台保存只写数据库
 - `xiuno.uploadPath` 仍在 `config.yaml`；`phpRoot` 可选，仅用于导入遗留配置
+
+## phpRoot（当前策略）
+
+- **可为空**：站点/SMTP 已在 `bbs_kv`；分页等默认走 yaml。
+- **非空**：仅用于首次导入旧 conf、以及极少遗留读取（cachepre、attach 目录规则）。
+- 上传、版块图标、临时文件一律使用 `uploadPath`。

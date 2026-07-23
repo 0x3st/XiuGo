@@ -128,16 +128,18 @@ func (s *Service) SiteSettings(ctx context.Context) (settings view.SiteSettings,
 
 func (s *Service) bootstrapSiteSettingsFromLegacy(ctx context.Context) view.SiteSettings {
 	var settings view.SiteSettings
-	path := filepath.Join(s.phpRoot(ctx), "conf", "conf.php")
-	if content, err := os.ReadFile(path); err == nil {
-		settings.Sitename = phpConfigString(content, "sitename")
-		settings.Sitebrief = phpConfigString(content, "sitebrief")
-		settings.Runlevel = phpConfigInt(content, "runlevel")
-		settings.RunlevelReason = phpConfigString(content, "runlevel_reason")
-		settings.UserCreateOn = phpConfigInt(content, "user_create_on")
-		settings.UserCreateEmailOn = phpConfigInt(content, "user_create_email_on")
-		settings.UserResetpwOn = phpConfigInt(content, "user_resetpw_on")
-		settings.Lang = phpConfigString(content, "lang")
+	if root := s.phpRoot(ctx); root != "" {
+		path := filepath.Join(root, "conf", "conf.php")
+		if content, err := os.ReadFile(path); err == nil {
+			settings.Sitename = phpConfigString(content, "sitename")
+			settings.Sitebrief = phpConfigString(content, "sitebrief")
+			settings.Runlevel = phpConfigInt(content, "runlevel")
+			settings.RunlevelReason = phpConfigString(content, "runlevel_reason")
+			settings.UserCreateOn = phpConfigInt(content, "user_create_on")
+			settings.UserCreateEmailOn = phpConfigInt(content, "user_create_email_on")
+			settings.UserResetpwOn = phpConfigInt(content, "user_resetpw_on")
+			settings.Lang = phpConfigString(content, "lang")
+		}
 	}
 	if settings.Sitename == "" {
 		settings.Sitename = g.Cfg().MustGet(ctx, "xiuno.sitename", "XiuGo").String()
@@ -148,13 +150,12 @@ func (s *Service) bootstrapSiteSettingsFromLegacy(ctx context.Context) view.Site
 	if settings.Lang == "" {
 		settings.Lang = g.Cfg().MustGet(ctx, "xiuno.lang", "zh-cn").String()
 	}
-	// If conf missing entirely, open site for all by default.
-	if _, err := os.Stat(path); err != nil {
+	if s.phpRoot(ctx) == "" {
 		if settings.Runlevel == 0 {
 			settings.Runlevel = g.Cfg().MustGet(ctx, "xiuno.runlevel", 5).Int()
 		}
-		if settings.UserCreateOn == 0 && g.Cfg().MustGet(ctx, "xiuno.userCreateOn", 1).Int() == 1 {
-			settings.UserCreateOn = 1
+		if settings.UserCreateOn == 0 {
+			settings.UserCreateOn = g.Cfg().MustGet(ctx, "xiuno.userCreateOn", 1).Int()
 		}
 	}
 	return settings
@@ -194,7 +195,11 @@ func (s *Service) SMTPAccounts(ctx context.Context) ([]view.SMTPAccount, error) 
 }
 
 func (s *Service) bootstrapSMTPFromLegacy(ctx context.Context) []view.SMTPAccount {
-	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "smtp.conf.php"))
+	root := s.phpRoot(ctx)
+	if root == "" {
+		return []view.SMTPAccount{}
+	}
+	content, err := os.ReadFile(filepath.Join(root, "conf", "smtp.conf.php"))
 	if err != nil {
 		return []view.SMTPAccount{}
 	}
@@ -261,7 +266,10 @@ func (s *Service) saveKV(ctx context.Context, key string, value any) error {
 }
 
 func (s *Service) phpRoot(ctx context.Context) string {
-	root := g.Cfg().MustGet(ctx, "xiuno.phpRoot", "../xiuno-bbs").String()
+	root := strings.TrimSpace(g.Cfg().MustGet(ctx, "xiuno.phpRoot", "").String())
+	if root == "" {
+		return ""
+	}
 	if absolute, err := filepath.Abs(root); err == nil {
 		return absolute
 	}
@@ -288,18 +296,20 @@ func phpConfigInt(content []byte, key string) int {
 }
 
 func (s *Service) phpCacheKeys(ctx context.Context, key string) []string {
-	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
 	prefixes := []string{"", "bbs_"}
-	if err == nil {
-		pattern := regexp.MustCompile(`'cachepre'\s*=>\s*'((?:\\.|[^'])*)'`)
-		for _, match := range pattern.FindAllSubmatch(content, -1) {
-			if len(match) > 1 {
-				prefixes = append(prefixes, phpUnescape(string(match[1])))
+	if root := s.phpRoot(ctx); root != "" {
+		content, err := os.ReadFile(filepath.Join(root, "conf", "conf.php"))
+		if err == nil {
+			pattern := regexp.MustCompile(`'cachepre'\s*=>\s*'((?:\\.|[^'])*)'`)
+			for _, match := range pattern.FindAllSubmatch(content, -1) {
+				if len(match) > 1 {
+					prefixes = append(prefixes, phpUnescape(string(match[1])))
+				}
 			}
 		}
 	}
 	keys := make([]string, 0, len(prefixes))
-	seen := make(map[string]bool)
+	seen := map[string]bool{}
 	for _, prefix := range prefixes {
 		candidate := prefix + key
 		if len(candidate) > 32 {

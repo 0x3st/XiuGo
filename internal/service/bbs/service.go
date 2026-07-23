@@ -51,7 +51,11 @@ func (s *Service) postListPageSize(ctx context.Context) int {
 }
 
 func (s *Service) phpConfInt(ctx context.Context, key string) int {
-	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
+	root := s.phpRoot(ctx)
+	if root == "" {
+		return 0
+	}
+	content, err := os.ReadFile(filepath.Join(root, "conf", "conf.php"))
 	if err != nil {
 		return 0
 	}
@@ -59,7 +63,11 @@ func (s *Service) phpConfInt(ctx context.Context, key string) int {
 }
 
 func (s *Service) phpConfString(ctx context.Context, key string) string {
-	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
+	root := s.phpRoot(ctx)
+	if root == "" {
+		return ""
+	}
+	content, err := os.ReadFile(filepath.Join(root, "conf", "conf.php"))
 	if err != nil {
 		return ""
 	}
