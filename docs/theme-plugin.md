@@ -33,6 +33,7 @@ XiuGo 自有扩展体系，**不兼容** Xiuno PHP 主题/插件（无 Hook/Over
 | `thread.created` | 发主题成功 |
 | `reply.created` | 回帖成功 |
 | `post.updated` / `post.deleted` | 编辑/删除帖 |
+| `admin.render` | 后台模板渲染前（如 users 列表） |
 
 热插拔 `.so` / PHP 插件目录 **不在范围**。扩展以编译进主程序的 Go 包为主。
 

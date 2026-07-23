@@ -78,6 +78,15 @@ type PostDeletedEvent struct {
 	// Tid==0 means entire thread removed with first post.
 }
 
+// AdminRenderEvent is fired before writing an admin HTML template.
+// Plugins may set Params flags (e.g. ShowUserCredits) or ExtraCSS.
+type AdminRenderEvent struct {
+	Template string
+	Params   map[string]any
+	ExtraCSS []string
+	ExtraJS  []string
+}
+
 type Handler func(ctx context.Context, event any) error
 
 type Manager struct {

@@ -130,3 +130,11 @@ internal/plugin/builtin/devtools.go   # 页脚注释显示当前模板路径
 | 页面注入 | `internal/controller/web/controller.go` → `renderPage` |
 | 业务 Fire | `internal/service/bbs/service.go` |
 | 后台 UI | `/admin/themes`、`/admin/plugins` |
+
+
+## 示例扩展：credits_admin
+
+- 代码：`internal/plugin/builtin/credits_admin.go`
+- Hook：`admin.render`（仅 `admin/users.html`）
+- 效果：启用后 `/admin/users` 增加「积分」列
+- 数据：核心查询已包含 `bbs_user.credits`；列显示由插件开关控制

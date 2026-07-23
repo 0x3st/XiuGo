@@ -1,12 +1,29 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><link rel="stylesheet" href="/view/css/bootstrap.css"><link rel="stylesheet" href="/view/css/bootstrap-bbs.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title><link rel="stylesheet" href="/view/css/bootstrap.css"><link rel="stylesheet" href="/view/css/bootstrap-bbs.css">
+{{range .PluginCSS}}<link rel="stylesheet" href="{{.}}">{{end}}
+</head>
 <body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/admin/">XiuGo</a><div class="navbar-nav mr-auto"><a class="nav-item nav-link" href="/admin/">概览</a><a class="nav-item nav-link" href="/admin/settings">设置</a><a class="nav-item nav-link" href="/admin/threads">主题</a><a class="nav-item nav-link" href="/admin/users">用户</a><a class="nav-item nav-link" href="/admin/forums">版块</a><a class="nav-item nav-link" href="/admin/groups">用户组</a><a class="nav-item nav-link" href="/admin/maintenance">维护</a><a class="nav-item nav-link" href="/admin/themes">主题</a><a class="nav-item nav-link" href="/admin/plugins">扩展</a><a class="nav-item nav-link" href="/">前台</a></div><span class="navbar-text">{{.User.Username}}</span></div></nav>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/admin/">XiuGo</a><div class="navbar-nav mr-auto"><a class="nav-item nav-link" href="/admin/">概览</a><a class="nav-item nav-link" href="/admin/settings">设置</a><a class="nav-item nav-link" href="/admin/threads">主题</a><a class="nav-item nav-link active" href="/admin/users">用户</a><a class="nav-item nav-link" href="/admin/forums">版块</a><a class="nav-item nav-link" href="/admin/groups">用户组</a><a class="nav-item nav-link" href="/admin/maintenance">维护</a><a class="nav-item nav-link" href="/admin/themes">主题</a><a class="nav-item nav-link" href="/admin/plugins">扩展</a><a class="nav-item nav-link" href="/">前台</a></div><span class="navbar-text">{{.User.Username}}</span></div></nav>
 <main class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3"><h3 class="mb-0">用户管理</h3><form class="form-inline" method="get"><input class="form-control form-control-sm mr-2" name="keyword" value="{{.Keyword}}" placeholder="用户名或邮箱"><button class="btn btn-sm btn-outline-primary">搜索</button></form></div>
-  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr><th>ID</th><th>用户</th><th>邮箱</th><th>主题/帖子</th><th>用户组</th></tr></thead><tbody>
-  {{range .Users}}{{$user := .}}<tr><td>{{.Uid}}</td><td><strong>{{.Username}}</strong><div class="small text-muted">{{.CreateTime}}</div></td><td>{{.Email}}</td><td>{{.Threads}} / {{.Posts}}</td><td><form class="form-inline" method="post" action="/admin/user/{{.Uid}}/group"><select class="form-control form-control-sm mr-2" name="gid">{{range $.Groups}}<option value="{{.Gid}}" {{if eq .Gid $user.Gid}}selected{{end}}>{{.Name}}</option>{{end}}</select><button class="btn btn-sm btn-outline-primary">保存</button></form></td></tr>{{else}}<tr><td colspan="5" class="text-center text-muted py-5">没有找到用户</td></tr>{{end}}
+  {{if .ShowUserCredits}}
+  <div class="alert alert-info py-2 small">已启用扩展 <strong>User Credits</strong>：列表显示用户积分（<code>bbs_user.credits</code>）。</div>
+  {{end}}
+  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0"><thead><tr>
+    <th>ID</th><th>用户</th><th>邮箱</th><th>主题/帖子</th>
+    {{if .ShowUserCredits}}<th>积分</th>{{end}}
+    <th>用户组</th>
+  </tr></thead><tbody>
+  {{range .Users}}{{$user := .}}<tr>
+    <td>{{.Uid}}</td>
+    <td><strong>{{.Username}}</strong><div class="small text-muted">{{.CreateTime}}</div></td>
+    <td>{{.Email}}</td>
+    <td>{{.Threads}} / {{.Posts}}</td>
+    {{if $.ShowUserCredits}}<td><span class="badge badge-secondary">{{.Credits}}</span></td>{{end}}
+    <td><form class="form-inline" method="post" action="/admin/user/{{.Uid}}/group"><select class="form-control form-control-sm mr-2" name="gid">{{range $.Groups}}<option value="{{.Gid}}" {{if eq .Gid $user.Gid}}selected{{end}}>{{.Name}}</option>{{end}}</select><button class="btn btn-sm btn-outline-primary">保存</button></form></td>
+  </tr>{{else}}<tr><td colspan="{{if .ShowUserCredits}}6{{else}}5{{end}}" class="text-center text-muted py-5">没有找到用户</td></tr>{{end}}
   </tbody></table></div></div>
 </main>
-</body></html>
+</body>
+</html>

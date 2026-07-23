@@ -158,6 +158,7 @@ type AdminUser struct {
 	GroupName  string
 	Threads    int
 	Posts      int
+	Credits    int
 	CreateDate uint
 	CreateTime string
 	CreateIp   uint

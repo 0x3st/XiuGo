@@ -1142,10 +1142,22 @@ func (c *Controller) AdminUsers(r *ghttp.Request) {
 		c.fail(r, err)
 		return
 	}
-	if err = r.Response.WriteTpl("admin/users.html", gview.Params{
+	params := gview.Params{
 		"Title": "用户管理", "Users": users, "Groups": groups,
 		"Keyword": keyword, "User": user,
-	}); err != nil {
+	}
+	ev := &plugin.AdminRenderEvent{Template: "admin/users.html", Params: map[string]any{}}
+	for k, v := range params {
+		ev.Params[k] = v
+	}
+	_ = plugin.Global().Fire(r.Context(), plugin.HookAdminRender, ev)
+	for k, v := range ev.Params {
+		params[k] = v
+	}
+	if len(ev.ExtraCSS) > 0 {
+		params["PluginCSS"] = ev.ExtraCSS
+	}
+	if err = r.Response.WriteTpl("admin/users.html", params); err != nil {
 		c.fail(r, err)
 	}
 }

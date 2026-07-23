@@ -1218,7 +1218,7 @@ func (s *Service) AdminThreads(ctx context.Context, keyword string) (threads []v
 func (s *Service) AdminUsers(ctx context.Context, keyword string) (users []view.AdminUser, err error) {
 	model := dao.BbsUser.Ctx(ctx).
 		LeftJoin("bbs_group g", "g.gid=bbs_user.gid").
-		Fields("bbs_user.uid,bbs_user.username,bbs_user.email,bbs_user.gid,bbs_user.threads,bbs_user.posts,bbs_user.create_date,g.name AS group_name").
+		Fields("bbs_user.uid,bbs_user.username,bbs_user.email,bbs_user.gid,bbs_user.threads,bbs_user.posts,bbs_user.credits,bbs_user.create_date,g.name AS group_name").
 		OrderAsc("bbs_user.uid").
 		Limit(100)
 	if keyword = strings.TrimSpace(keyword); keyword != "" {
