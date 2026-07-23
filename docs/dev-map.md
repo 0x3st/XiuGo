@@ -138,3 +138,15 @@ internal/plugin/builtin/devtools.go   # 页脚注释显示当前模板路径
 - Hook：`admin.render`（仅 `admin/users.html`）
 - 效果：启用后 `/admin/users` 增加「积分」列
 - 数据：核心查询已包含 `bbs_user.credits`；列显示由插件开关控制
+
+
+## 快速加入第三方插件（drop-in）
+
+见仓库根目录 [plugins/README.md](../plugins/README.md)。
+
+```bash
+# 拷贝插件目录到 plugins/<id>
+go generate ./internal/plugin/registry   # 或 make plugins
+go build -o xiugo .
+# 后台 → 扩展 → 启用
+```

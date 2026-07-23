@@ -41,3 +41,15 @@ XiuGo 自有扩展体系，**不兼容** Xiuno PHP 主题/插件（无 Hook/Over
 
 
 更完整的 URL↔模板↔Hook 表见 [dev-map.md](dev-map.md)。
+
+
+## 快速加入第三方插件（drop-in）
+
+见仓库根目录 [plugins/README.md](../plugins/README.md)。
+
+```bash
+# 拷贝插件目录到 plugins/<id>
+go generate ./internal/plugin/registry   # 或 make plugins
+go build -o xiugo .
+# 后台 → 扩展 → 启用
+```

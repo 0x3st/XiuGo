@@ -11,6 +11,7 @@ import (
 
 	"github.com/0x3st/XiuGo/internal/controller/web"
 	_ "github.com/0x3st/XiuGo/internal/plugin/builtin"
+	_ "github.com/0x3st/XiuGo/internal/plugin/registry"
 	"github.com/0x3st/XiuGo/internal/plugin"
 	"github.com/0x3st/XiuGo/internal/service/bbs"
 	"github.com/0x3st/XiuGo/internal/theme"
