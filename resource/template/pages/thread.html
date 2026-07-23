@@ -1,0 +1,184 @@
+{{include "layout/header.html" .}}
+<div class="row">
+  <div class="col-lg-9 main">
+    <ol class="breadcrumb d-none d-md-flex">
+      <li class="breadcrumb-item"><a href="/" aria-label="首页"><i class="icon-home"></i></a></li>
+      <li class="breadcrumb-item"><a href="/forum/{{.Page.Thread.Fid}}">{{.Page.Thread.ForumName}}</a></li>
+      <li class="breadcrumb-item active"><a href="/thread/{{.Page.Thread.Tid}}" title="返回主题第一页">{{.Page.Thread.Subject}}</a></li>
+    </ol>
+
+    <div class="card card-thread">
+      <div class="card-body">
+        <div class="media">
+          <a href="/user/{{.Page.First.Uid}}" tabindex="-1">
+            <img class="avatar-3 mr-3" src="{{if .Page.First.AvatarURL}}{{.Page.First.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+          </a>
+          <div class="media-body">
+            <h4 class="break-all">{{.Page.Thread.Subject}}</h4>
+            <div class="d-flex justify-content-between small">
+              <div>
+                <span class="username">
+                  <a href="/user/{{.Page.First.Uid}}" class="text-muted font-weight-bold">{{.Page.First.Username}}</a>
+                </span>
+                <span class="date text-grey ml-2">{{.Page.Thread.CreateTime}}</span>
+                <span class="text-grey ml-2"><i class="icon-eye"></i> {{.Page.Thread.Views}}</span>
+              </div>
+              <div>
+                {{if .Page.First.CanEdit}}
+                <a href="/post/{{.Page.First.Pid}}/edit" class="text-grey mr-2 post_update"><i class="icon-edit"></i> 编辑</a>
+                {{end}}
+                {{if .Page.First.CanDelete}}
+                <a data-href="/post/{{.Page.First.Pid}}/delete" href="javascript:void(0);" class="text-grey post_delete _confirm" isfirst="1"><i class="icon-remove"></i> 删除</a>
+                {{end}}
+              </div>
+            </div>
+          </div>
+        </div>
+        <hr />
+        <div class="message break-all" isfirst="1">
+          {{.Page.First.MessageFmt}}
+          {{if .Page.First.Files}}
+          <fieldset class="fieldset mt-3"><legend>上传的附件：</legend>
+            <ul class="attachlist">
+              {{range .Page.First.Files}}
+              <li data-aid="{{.Aid}}"><a href="/attach/{{.Aid}}/download" target="_blank"><i class="icon filetype {{.Filetype}}"></i> {{.Orgfilename}}</a> <span class="filesize small text-grey">{{.Filesize}}</span></li>
+              {{end}}
+            </ul>
+          </fieldset>
+          {{end}}
+        </div>
+        <div class="plugin d-flex justify-content-center mt-3"></div>
+      </div>
+    </div>
+
+    <div class="card card-postlist">
+      <div class="card-body">
+        <div class="card-title">
+          <div class="d-flex justify-content-between">
+            <div>
+              <b>最新回复</b> (<span class="posts">{{.Page.Thread.Posts}}</span>)
+            </div>
+            <div></div>
+          </div>
+        </div>
+        <ul class="list-unstyled postlist">
+          {{range .Page.Replies}}
+          <li class="media post" data-pid="{{.Pid}}" data-uid="{{.Uid}}">
+            <a href="/user/{{.Uid}}" class="mr-3" tabindex="-1">
+              <img class="avatar-3" src="{{if .AvatarURL}}{{.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+            </a>
+            <div class="media-body">
+              <div class="d-flex justify-content-between small text-muted">
+                <div>
+                  <span class="username">
+                    <a href="/user/{{.Uid}}" class="text-muted font-weight-bold">{{.Username}}</a>
+                  </span>
+                  <span class="date text-grey ml-2">{{.CreateTime}}</span>
+                </div>
+                <div class="text-right text-grey">
+                  {{if .CanQuote}}
+                  <a href="javascript:void(0)" data-tid="{{.Tid}}" data-pid="{{.Pid}}" class="text-grey post_reply mr-3"><i class="icon-reply" title="回复"></i> <span class="d-none">引用</span></a>
+                  {{end}}
+                  {{if .CanEdit}}
+                  <a href="/post/{{.Pid}}/edit" class="text-grey post_update mr-3"><i class="icon-edit" title="编辑"></i> <span class="d-none">编辑</span></a>
+                  {{end}}
+                  {{if .CanDelete}}
+                  <a data-href="/post/{{.Pid}}/delete" href="javascript:void(0);" class="text-grey post_delete _confirm mr-3" isfirst="0"><i class="icon-remove" title="删除"></i> <span class="d-none">删除</span></a>
+                  {{end}}
+                  {{if .Floor}}
+                  <span class="floor-parent">
+                    <span class="floor mr-0">{{.Floor}}</span>楼
+                  </span>
+                  {{end}}
+                </div>
+              </div>
+              <div class="message mt-1 break-all">
+                {{.MessageFmt}}
+                {{if .Files}}
+                <fieldset class="fieldset mt-3"><legend>上传的附件：</legend>
+                  <ul class="attachlist">
+                    {{range .Files}}
+                    <li data-aid="{{.Aid}}"><a href="/attach/{{.Aid}}/download" target="_blank"><i class="icon filetype {{.Filetype}}"></i> {{.Orgfilename}}</a></li>
+                    {{end}}
+                  </ul>
+                </fieldset>
+                {{end}}
+              </div>
+            </div>
+          </li>
+          {{end}}
+
+          {{if .User.Uid}}
+          <li class="post newpost media">
+            <a href="/user/{{.User.Uid}}" class="mr-3" tabindex="-1">
+              <img class="avatar-3" src="{{if .User.AvatarURL}}{{.User.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+            </a>
+            <div class="media-body">
+              <div class="d-flex justify-content-between small text-muted">
+                <div><div>{{.User.Username}}</div></div>
+                <div><span class="floor" id="newfloor">{{.Page.NextFloor}}</span>楼</div>
+              </div>
+              <div>
+                <form action="/thread/{{.Page.Thread.Tid}}/reply" method="post" id="quick_reply_form" class="d-block">
+                  <input type="hidden" name="doctype" value="1" />
+                  <input type="hidden" name="return_html" value="1" />
+                  <input type="hidden" name="quotepid" value="0" />
+                  <div class="message mt-1">
+                    <textarea class="form-control" placeholder="内容" name="message" id="message"></textarea>
+                  </div>
+                  <div class="text-muted mt-2 small">
+                    <div class="d-flex justify-content-between">
+                      <div>
+                        <button type="submit" class="btn btn-sm btn-secondary" id="submit" data-loading-text="正在提交..."> 回帖 </button>
+                      </div>
+                      <div>
+                        <a class="icon-mail-forward text-muted" href="/thread/{{.Page.Thread.Tid}}/reply" id="advanced_reply"> 高级回帖</a>
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            </div>
+          </li>
+          {{end}}
+        </ul>
+      </div>
+    </div>
+
+    <div class="d-none threadlist"><input type="checkbox" name="modtid" value="{{.Page.Thread.Tid}}" checked /></div>
+    {{if and .User.Uid (lt .User.Gid 5)}}
+    <div class="text-center">
+      <div class="btn-group mod-button my-3" role="group" aria-label="">
+        <button class="btn btn-secondary delete" data-modal-url="/mod/delete" data-modal-title="删除" data-modal-arg=".threadlist" data-modal-size="md">删除</button>
+        <button class="btn btn-secondary move" data-modal-url="/mod/move" data-modal-title="移动" data-modal-arg=".threadlist" data-modal-size="md">移动</button>
+        <button class="btn btn-secondary top" data-modal-url="/mod/top" data-modal-title="置顶" data-modal-arg=".threadlist" data-modal-size="md">置顶</button>
+        <button class="btn btn-secondary _close" data-modal-url="/mod/close" data-modal-title="关闭" data-modal-arg=".threadlist" data-modal-size="md">关闭</button>
+      </div>
+    </div>
+    {{end}}
+
+    <a role="button" class="btn btn-secondary btn-block xn-back col-lg-6 mx-auto mb-3" href="javascript:history.back();">返回</a>
+  </div>
+
+  <div class="col-lg-3 d-none d-lg-block aside">
+    <a role="button" class="btn btn-primary btn-block mb-3" href="/thread/create?fid={{.Page.Thread.Fid}}">发新帖</a>
+    <div class="card card-user-info">
+      <div class="m-3 text-center">
+        <a href="/user/{{.Page.Author.Uid}}" tabindex="-1">
+          <img class="avatar-5" src="{{if .Page.Author.AvatarURL}}{{.Page.Author.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+        </a>
+        <h5><a href="/user/{{.Page.Author.Uid}}">{{.Page.Author.Username}}</a></h5>
+      </div>
+      <div class="card-footer p-2">
+        <table class="w-100 small">
+          <tr align="center">
+            <td><span class="text-muted">主题数</span><br><b>{{.Page.Author.Threads}}</b></td>
+            <td><span class="text-muted">帖子数</span><br><b>{{.Page.Author.Posts}}</b></td>
+            <td><span class="text-muted">注册排名</span><br><b>{{.Page.Author.Uid}}</b></td>
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{{include "layout/footer.html" .}}

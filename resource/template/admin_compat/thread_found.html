@@ -1,0 +1,3 @@
+{{include "admin_compat/header.html" .}}
+<div class="row"><div class="col-12"><div class="card"><div class="card-body"><p class="text-muted">共 {{.Total}} 个主题</p><ul class="list-unstyled threadlist mb-0">{{range .Threads}}<li class="media thread tap {{if .Closed}}text-muted{{end}}"><div class="media-body"><div class="subject"><a href="/thread/{{.Tid}}" target="_blank">{{.Subject}}</a></div><div class="small text-muted"><span>{{.Username}}</span> · <span>{{.ForumName}}</span> · <span>{{.CreateTime}}</span> · <span>{{.Posts}} 回复</span></div></div></li>{{else}}<li class="text-muted">没有结果</li>{{end}}</ul></div></div></div></div>
+{{include "admin_compat/footer.html" .}}

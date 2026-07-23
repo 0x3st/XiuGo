@@ -1,0 +1,5 @@
+# gfcli / hack example — copy and fill locally if you use code generation.
+gfcli:
+  gen:
+    dao:
+      - link: "mysql:USER:PASSWORD@tcp(127.0.0.1:3306)/xiuno"

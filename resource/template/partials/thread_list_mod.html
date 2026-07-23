@@ -1,0 +1,13 @@
+{{if .HaveAllowTop}}
+<div class="text-center">
+  <label class="mr-3">
+    <input type="checkbox" data-target='input[name="modtid"]' class="checkall mt-2 mr-2" value="" aria-label="全选" />全选
+  </label>
+  <div class="btn-group mod-button my-3" role="group" aria-label="">
+    <button class="btn btn-secondary delete" data-modal-url="/mod/delete" data-modal-title="删除" data-modal-arg=".threadlist" data-modal-size="md">删除</button>
+    <button class="btn btn-secondary move" data-modal-url="/mod/move" data-modal-title="移动" data-modal-arg=".threadlist" data-modal-size="md">移动</button>
+    <button class="btn btn-secondary top" data-modal-url="/mod/top" data-modal-title="置顶" data-modal-arg=".threadlist" data-modal-size="md">置顶</button>
+    <button class="btn btn-secondary _close" data-modal-url="/mod/close" data-modal-title="关闭" data-modal-arg=".threadlist" data-modal-size="md">关闭</button>
+  </div>
+</div>
+{{end}}

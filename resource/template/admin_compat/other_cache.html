@@ -1,0 +1,37 @@
+{{include "admin_compat/header.html" .}}
+<div class="row">
+  <div class="col-lg-8 mx-auto">
+    <div class="card">
+      <div class="card-body">
+        <form action="/admin/?other-cache.htm" method="post" id="form">
+          <h4>维护工具</h4>
+          <p class="text-muted small mb-3">
+            生产环境只运行 Go。此处用于重建运行数据（主题/帖子/用户/在线等统计），并清理上传临时目录。
+            不需要为 PHP 页面同步缓存。
+          </p>
+          <div class="form-group">
+            <label><input type="checkbox" name="clear_cache" value="1" checked> 重建运行数据（清空并重算 bbs_cache 中的 runtime）</label>
+          </div>
+          <div class="form-group">
+            <label><input type="checkbox" name="clear_tmp" value="1" checked> 清理上传临时目录（upload/tmp）</label>
+          </div>
+          <button class="btn btn-primary btn-block" id="submit">确定</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{include "admin_compat/footer.html" .}}
+<script>
+var f = $('#form'), s = $('#submit');
+f.on('submit', function () {
+  f.reset();
+  s.button('loading');
+  $.xpost(f.attr('action'), f.serialize(), function (code, message) {
+    if (code == 0) $.alert(message);
+    else alert(message);
+    s.button('reset');
+  });
+  return false;
+});
+</script>

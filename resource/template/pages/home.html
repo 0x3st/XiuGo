@@ -1,0 +1,43 @@
+{{include "layout/header.html" .}}
+<div class="row">
+  <div class="col-lg-9 main">
+    <div class="card card-threadlist">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item">
+            <a class="nav-link active" href="/">最新主题</a>
+          </li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <ul class="list-unstyled threadlist mb-0">
+          {{include "partials/thread_list.html" .}}
+        </ul>
+      </div>
+    </div>
+    {{include "partials/thread_list_mod.html" .}}
+    <nav class="my-3"><ul class="pagination justify-content-center flex-wrap"></ul></nav>
+  </div>
+  <div class="col-lg-3 d-none d-lg-block aside">
+    <a role="button" class="btn btn-primary btn-block mb-3" href="/thread/create">发新帖</a>
+    <div class="card card-site-info">
+      <div class="m-3">
+        <h5 class="text-center">{{.Site.Sitename}}</h5>
+        <div class="small line-height-3">{{.Site.Sitebrief}}</div>
+      </div>
+      <div class="card-footer p-2">
+        <table class="w-100 small">
+          <tr align="center">
+            <td><span class="text-muted">主题数</span><br><b>{{.Stats.Threads}}</b></td>
+            <td><span class="text-muted">帖子数</span><br><b>{{.Stats.Posts}}</b></td>
+            <td><span class="text-muted">用户数</span><br><b>{{.Stats.Users}}</b></td>
+            {{if gt .Stats.Onlines 0}}
+            <td><span class="text-muted">在线</span><br><b>{{.Stats.Onlines}}</b></td>
+            {{end}}
+          </tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{{include "layout/footer.html" .}}

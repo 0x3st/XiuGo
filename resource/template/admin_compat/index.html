@@ -1,0 +1,16 @@
+{{include "admin_compat/header.html" .}}
+<div class="row line-height-3"><div class="col-12">
+  <h3>后台首页</h3>
+  <div class="card"><div class="card-body"><h5 class="card-title">站点统计信息</h5><div class="row">
+    <div class="col-md-4"><span class="text-muted">主题数：</span>{{.Dashboard.Threads}}</div><div class="col-md-4"><span class="text-muted">帖子数：</span>{{.Dashboard.Posts}}</div><div class="col-md-4"><span class="text-muted">用户数：</span>{{.Dashboard.Users}}</div>
+    <div class="col-md-4"><span class="text-muted">附件总数：</span>{{.Dashboard.Attachs}}</div><div class="col-md-4"><span class="text-muted">磁盘剩余空间：</span>{{.Dashboard.DiskFreeSpace}}</div><div class="col-md-4"><span class="text-muted">在线人数：</span>{{.Dashboard.Onlines}}</div>
+  </div></div></div>
+  <div class="card"><div class="card-body"><h5>服务器信息 <a href="/admin/?index-phpinfo.htm"><small>[GO INFO]</small></a></h5><div class="row">
+    <div class="col-md-6"><span class="text-muted">操作系统：</span>{{.Dashboard.OS}}</div><div class="col-md-6"><span class="text-muted">Web Server：</span>{{.Dashboard.WebServer}}</div><div class="col-md-6"><span class="text-muted">Go：</span>{{.Dashboard.GoVersion}}</div>
+    <div class="col-md-6"><span class="text-muted">数据库：</span>{{.Dashboard.Database}}</div><div class="col-md-6"><span class="text-muted">最大 POST 数据大小：</span>{{.Dashboard.PostMaxSize}}</div><div class="col-md-6"><span class="text-muted">最大文件上传大小：</span>{{.Dashboard.UploadMaxSize}}</div>
+    <div class="col-md-6"><span class="text-muted">允许远程访问：</span>{{.Dashboard.AllowURLFopen}}</div><div class="col-md-6"><span class="text-muted">安全模式：</span>{{.Dashboard.SafeMode}}</div><div class="col-md-6"><span class="text-muted">最大执行时间：</span>{{.Dashboard.MaxExecution}}</div>
+    <div class="col-md-6"><span class="text-muted">内存限制：</span>{{.Dashboard.MemoryLimit}}</div><div class="col-md-6"><span class="text-muted">客户端 IP：</span>{{.Dashboard.ClientIP}}</div><div class="col-md-6"><span class="text-muted">服务端 IP：</span>{{.Dashboard.ServerIP}}</div>
+  </div></div></div>
+  <div class="card"><div class="card-body"><h5>开发团队信息</h5><div>Official Site: <a href="http://www.xiuno.com" target="_blank">http://www.xiuno.com/</a></div><div>Dev Team: <a href="http://bbs.xiuno.com/" target="_blank">axiuno</a></div><div>Thanks For: cnteacher@discuz · Discuz! Team · Artery · 剑心@wooyun · 右键森林 · 吴兆焕 · 杨永全 · 郑城 · 大象</div></div></div>
+</div></div>
+{{include "admin_compat/footer.html" .}}

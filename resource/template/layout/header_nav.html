@@ -1,0 +1,37 @@
+<header class="navbar navbar-expand-lg navbar-dark bg-dark" id="header">
+  <div class="container">
+    <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#nav" aria-controls="navbar_collapse" aria-expanded="false" aria-label="展开菜单">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <a class="navbar-brand text-truncate" href="{{if .MobileLink}}{{.MobileLink}}{{else}}/{{end}}">
+      <img src="/view/img/logo.png" class="logo-2">
+      {{if .MobileTitle}}<span class="hidden-lg">{{.MobileTitle}}</span>{{end}}
+    </a>
+    {{if .User.Uid}}
+    <a class="navbar-brand hidden-lg" href="/thread/create{{if .ActiveFid}}?fid={{.ActiveFid}}{{end}}" aria-label="发新帖"><i class="icon-edit icon"></i></a>
+    {{else}}
+    <a class="navbar-brand hidden-lg" href="/login" aria-label="登录"><i class="icon-user icon"></i></a>
+    {{end}}
+    <div class="collapse navbar-collapse" id="nav">
+      <ul class="navbar-nav mr-auto">
+        <li class="nav-item home" fid="0" data-active="fid-0"><a class="nav-link" href="/"><i class="icon-home d-md-none"></i> 首页</a></li>
+        {{range .NavForums}}
+        <li class="nav-item" fid="{{.Fid}}" data-active="fid-{{.Fid}}">
+          <a class="nav-link" href="/forum/{{.Fid}}"><i class="icon-circle-o d-md-none"></i> {{.Name}}</a>
+        </li>
+        {{end}}
+      </ul>
+      <ul class="navbar-nav">
+        {{if .User.Uid}}
+        <li class="nav-item username"><a class="nav-link" href="/my"><img class="avatar-1" src="{{if .User.AvatarURL}}{{.User.AvatarURL}}{{else}}/view/img/avatar.png{{end}}"> {{.User.Username}}</a></li>
+        {{if eq .User.Gid 1}}
+        <li class="nav-item"><a class="nav-link" href="/admin"><i class="icon-home"></i> 后台管理</a></li>
+        {{end}}
+        <li class="nav-item"><a class="nav-link" href="/logout"><i class="icon-sign-out"></i> 退出</a></li>
+        {{else}}
+        <li class="nav-item"><a class="nav-link" href="/login"><i class="icon-user"></i> 登录</a></li>
+        {{end}}
+      </ul>
+    </div>
+  </div>
+</header>

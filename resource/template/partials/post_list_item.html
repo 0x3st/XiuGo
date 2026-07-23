@@ -1,0 +1,43 @@
+<li class="media post" data-pid="{{.Pid}}" data-uid="{{.Uid}}">
+  <a href="/user/{{.Uid}}" class="mr-3" tabindex="-1">
+    <img class="avatar-3" src="{{if .AvatarURL}}{{.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+  </a>
+  <div class="media-body">
+    <div class="d-flex justify-content-between small text-muted">
+      <div>
+        <span class="username">
+          <a href="/user/{{.Uid}}" class="text-muted font-weight-bold">{{.Username}}</a>
+        </span>
+        <span class="date text-grey ml-2">{{.CreateTime}}</span>
+      </div>
+      <div class="text-right text-grey">
+        {{if .CanQuote}}
+        <a href="javascript:void(0)" data-tid="{{.Tid}}" data-pid="{{.Pid}}" class="text-grey post_reply mr-3"><i class="icon-reply" title="引用"></i> <span class="d-none">引用</span></a>
+        {{end}}
+        {{if .CanEdit}}
+        <a href="/post/{{.Pid}}/edit" class="text-grey post_update mr-3"><i class="icon-edit" title="编辑"></i> <span class="d-none">编辑</span></a>
+        {{end}}
+        {{if .CanDelete}}
+        <a data-href="/post/{{.Pid}}/delete" data-confirm-text="确定删除吗？" href="javascript:void(0);" class="text-grey post_delete _confirm mr-3"><i class="icon-remove" title="删除"></i> <span class="d-none">删除</span></a>
+        {{end}}
+        {{if .Floor}}
+        <span class="floor-parent">
+          <span class="floor mr-0">{{.Floor}}</span>楼
+        </span>
+        {{end}}
+      </div>
+    </div>
+    <div class="message mt-1 break-all">
+      {{.MessageFmt}}
+      {{if .Files}}
+      <fieldset class="fieldset mt-3"><legend>上传的附件：</legend>
+        <ul class="attachlist">
+          {{range .Files}}
+          <li aid="{{.Aid}}"><a href="/attach/{{.Aid}}/download" target="_blank"><i class="icon filetype {{.Filetype}}"></i> {{.Orgfilename}}</a></li>
+          {{end}}
+        </ul>
+      </fieldset>
+      {{end}}
+    </div>
+  </div>
+</li>

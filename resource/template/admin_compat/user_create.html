@@ -1,0 +1,27 @@
+{{include "admin_compat/header.html" .}}
+<div class="row"><div class="col-lg-8 mx-auto"><div class="btn-group mb-3"><a class="btn btn-secondary" href="/admin/?user-list.htm">用户列表</a><a class="btn btn-secondary active" href="/admin/?user-create.htm">创建用户</a><a class="btn btn-secondary" href="/admin/?group-list.htm">用户组</a></div><div class="card"><div class="card-body"><form action="/admin/?user-create.htm" method="post" id="form" >
+<div class="form-group row"><label class="col-sm-2">邮箱：</label><div class="col-sm-10"><input class="form-control" name="email"></div></div><div class="form-group row"><label class="col-sm-2">用户名：</label><div class="col-sm-10"><input class="form-control" name="username"></div></div><div class="form-group row"><label class="col-sm-2">密码：</label><div class="col-sm-10"><input type="password" class="form-control" name="password" id="password" autocomplete="new-password"></div></div><div class="form-group row"><label class="col-sm-2">用户组：</label><div class="col-sm-10"><select class="form-control" name="_gid">{{range .Groups}}<option value="{{.Gid}}">{{.Name}}</option>{{end}}</select></div></div><div class="form-group row"><label class="col-sm-2"></label><div class="col-sm-10"><button class="btn btn-primary btn-block" id="submit">确定</button><a class="btn btn-secondary btn-block mt-3" href="javascript:history.back()">返回</a></div></div></form></div></div></div></div>
+{{include "admin_compat/footer.html" .}}
+<script src="/view/js/md5.js"></script>
+<script>
+var f = $('#form'), s = $('#submit');
+f.on('submit', function () {
+  f.reset();
+  s.button('loading');
+  var postdata = f.serializeObject();
+  if (postdata.password) postdata.password = $.md5(postdata.password);
+  $.xpost(f.attr('action'), postdata, function (code, message) {
+    if (code == 0) {
+      $.alert(message);
+      s.text(message).delay(500).location('/admin/?user-list.htm');
+    } else if (xn.is_number(code)) {
+      alert(message);
+      s.button('reset');
+    } else {
+      f.find('[name="'+code+'"]').alert(message).focus();
+      s.button('reset');
+    }
+  });
+  return false;
+});
+</script>

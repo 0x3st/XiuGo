@@ -1,0 +1,24 @@
+# Copy to config.yaml for local use (config.yaml is gitignored).
+
+server:
+  address:     ":8081"
+  openapiPath: "/api.json"
+  swaggerPath: "/swagger"
+  serverRoot:  "resource/public"
+  clientMaxBodySize: "32M"
+
+logger:
+  level : "all"
+  stdout: true
+
+database:
+  default:
+    # mysql:user:pass@tcp(host:3306)/dbname
+    link: "mysql:USER:PASSWORD@tcp(127.0.0.1:3306)/xiuno"
+    charset: "utf8mb4"
+    debug: false
+
+xiuno:
+  # Optional: path to Xiuno BBS 4.x tree for conf.php / plugins / shared upload.
+  phpRoot: "../xiuno-bbs"
+  uploadPath: "../xiuno-bbs/upload"

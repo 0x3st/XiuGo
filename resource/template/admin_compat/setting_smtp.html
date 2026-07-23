@@ -1,0 +1,11 @@
+{{include "admin_compat/header.html" .}}
+<div class="row"><div class="col-12">
+  <div class="btn-group mb-3" role="group"><a role="button" class="btn btn-secondary" href="/admin/?setting-base.htm">基本设置</a><a role="button" class="btn btn-secondary active" href="/admin/?setting-smtp.htm">SMTP 设置</a></div>
+  <div class="card"><div class="card-body"><form action="/admin/?setting-smtp.htm" method="post" id="form"><div class="table-responsive arrlist"><table class="table"><thead><tr><th>邮箱</th><th>SMTP 主机</th><th width="100">端口</th><th>用户名</th><th>密码</th><th>删除</th></tr></thead><tbody id="smtp_body">
+    {{range .Accounts}}<tr><td><input class="form-control" name="email[]" value="{{.Email}}"></td><td><input class="form-control" name="host[]" value="{{.Host}}"></td><td><input class="form-control" name="port[]" value="{{.Port}}"></td><td><input class="form-control" name="user[]" value="{{.User}}"></td><td><input type="password" class="form-control" name="pass[]" value="{{.Pass}}"></td><td><a class="btn row_delete">删除</a></td></tr>{{end}}
+  </tbody></table></div><p><a role="button" class="btn row_add">[+]增加一行</a></p><p class="text-center"><button class="btn btn-primary" id="submit" style="width:10rem">确定</button></p></form><p>注：SMTP 配置仍写入原版 <code>conf/smtp.conf.php</code>，PHP 与 Go 共用。</p></div></div>
+</div></div>
+{{include "admin_compat/footer.html" .}}
+<script>
+var body=$('#smtp_body');$('.arrlist').on('click','.row_delete',function(){$(this).parents('tr').remove();});$('.row_add').on('click',function(){body.append('<tr><td><input class="form-control" name="email[]"></td><td><input class="form-control" name="host[]"></td><td><input class="form-control" name="port[]"></td><td><input class="form-control" name="user[]"></td><td><input type="password" class="form-control" name="pass[]"></td><td><a class="btn row_delete">删除</a></td></tr>');});var f=$('#form'),s=$('#submit');f.on('submit',function(){f.reset();s.button('loading');$.xpost(f.attr('action'),f.serialize(),function(code,message){if(code==0){$.alert(message);s.button('reset');}else{alert(message);s.button('reset');}});return false;});
+</script>

@@ -1,0 +1,38 @@
+</div>
+</main>
+<footer class="text-muted small bg-dark py-4 mt-3" id="footer">
+  <div class="container">
+    <div class="row">
+      <div class="col">
+        Powered by <a href="https://github.com/0x3st/XiuGo" target="_blank" class="text-muted"><b>XiuGo <span>5.0.0</span></b></a>
+      </div>
+      <div class="col text-right">
+        {{if .Processed}}Processed: <b>{{.Processed}}</b>{{end}}
+      </div>
+    </div>
+  </div>
+</footer>
+<!--[if ltg IE 9]>
+<script>window.location = '/browser.htm';</script>
+<![endif]-->
+<script src="/lang/zh-cn/bbs.js?1.0"></script>
+<script src="/view/js/jquery-3.1.0.js?1.0"></script>
+<script src="/view/js/popper.js?1.0"></script>
+<script src="/view/js/bootstrap.js?1.0"></script>
+<script src="/view/js/xiuno.js?1.0"></script>
+<script src="/view/js/bootstrap-plugin.js?1.0"></script>
+<script src="/view/js/async.js?1.0"></script>
+<script src="/view/js/form.js?1.0"></script>
+<script>
+var debug = DEBUG = 0;
+var url_rewrite_on = 0;
+var forumarr = {{if .ForumArrJSON}}{{.ForumArrJSON}}{{else}}{}{{end}};
+var fid = {{if .ActiveFid}}{{.ActiveFid}}{{else}}0{{end}};
+var uid = {{if .User.Uid}}{{.User.Uid}}{{else}}0{{end}};
+var gid = {{if .User.Gid}}{{.User.Gid}}{{else}}0{{end}};
+xn.options.water_image_url = '/view/img/water-small-xiuno.png';
+</script>
+<script src="/view/js/bbs.js?1.0"></script>
+{{if .ExtraJS}}{{.ExtraJS}}{{end}}
+</body>
+</html>

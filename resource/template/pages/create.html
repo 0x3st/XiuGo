@@ -1,0 +1,64 @@
+{{include "layout/header.html" .}}
+<div class="row">
+  <div class="col-lg-10 mx-auto">
+    <div class="card">
+      <div class="card-header">{{if .FormTitle}}{{.FormTitle}}{{else}}发表主题{{end}}</div>
+      <div class="card-body">
+        <form action="{{.FormAction}}" method="post" id="form">
+          <input type="hidden" name="doctype" value="{{if .Doctype}}{{.Doctype}}{{else}}1{{end}}" />
+          <input type="hidden" name="quotepid" value="{{.QuotePID}}" />
+          {{if .IsFirst}}
+          <div class="form-group">
+            <select class="custom-select mr-1 w-auto" name="fid">
+              {{range .Forums}}
+              <option value="{{.Fid}}" {{if eq $.ActiveFid .Fid}}selected{{end}}>{{.Name}}</option>
+              {{end}}
+            </select>
+          </div>
+          <div class="form-group">
+            <input type="text" class="form-control" placeholder="标题" name="subject" value="{{.Subject}}" id="subject">
+          </div>
+          {{end}}
+          <div class="form-group">
+            <textarea class="form-control" placeholder="内容" name="message" id="message" style="height: 300px;">{{.Message}}</textarea>
+          </div>
+          <div class="d-flex justify-content-between">
+            <div class="attachlist_parent">
+              <a class="small text-left" href="javascript:void(0)">
+                <label class="addattach" id="addattach">
+                  <i class="icon-folder-open-o"></i>
+                  添加附件
+                  <input type="file" multiple="multiple" class="invisible" />
+                </label>
+              </a>
+              {{if .Files}}
+              <fieldset class="fieldset">
+                <legend>上传的附件：</legend>
+                <ul class="attachlist">
+                  {{range .Files}}
+                  <li aid="{{.Aid}}"><a href="/attach/{{.Aid}}/download" target="_blank"><i class="icon filetype {{.Filetype}}"></i> {{.Orgfilename}}</a> <a href="javascript:void(0);" class="delete ml-2"><i class="icon-remove"></i> 删除</a></li>
+                  {{end}}
+                </ul>
+              </fieldset>
+              {{end}}
+              {{if .Pending}}
+              <fieldset class="fieldset">
+                <legend>上传的附件：</legend>
+                <ul class="attachlist">
+                  {{range .Pending}}
+                  <li aid="{{.ID}}"><a href="{{.URL}}" target="_blank"><i class="icon filetype {{.Filetype}}"></i> {{.Orgfilename}}</a> <a href="javascript:void(0);" class="delete ml-2"><i class="icon-remove"></i> 删除</a></li>
+                  {{end}}
+                </ul>
+              </fieldset>
+              {{end}}
+            </div>
+            <div class="text-right">
+              <button type="submit" class="btn btn-primary" id="submit" data-loading-text="正在提交..."> {{if .SubmitText}}{{.SubmitText}}{{else}}发表主题{{end}} </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{include "layout/footer.html" .}}

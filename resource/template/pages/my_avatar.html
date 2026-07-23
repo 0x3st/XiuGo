@@ -1,0 +1,45 @@
+{{include "layout/header.html" .}}
+<div class="btn-group mb-3 d-lg-none" role="group" id="my_mobile_nav">
+  <a role="button" class="btn btn-secondary" data-active="menu-my" href="/my">个人资料</a>
+  <a role="button" class="btn btn-secondary" data-active="menu-my-thread" href="/my/threads">论坛帖子</a>
+</div>
+<div class="row">
+  <div class="col-lg-2 hidden-md hidden-sm" id="my_aside">
+    <div class="card">
+      <div class="card-body text-center">
+        <img class="avatar-4" src="{{if .User.AvatarURL}}{{.User.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+        <br>{{.User.Username}}
+      </div>
+      <div class="list-group list-group-flush text-center">
+        <a href="/my" class="list-group-item list-group-item-action" data-active="menu-my">个人资料</a>
+        <a href="/my/threads" class="list-group-item list-group-item-action" data-active="menu-my-thread">论坛帖子</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-10" id="my_main">
+    <div class="card">
+      <div class="card-header">
+        <ul class="nav nav-tabs card-header-tabs">
+          <li class="nav-item"><a class="nav-link" href="/my" data-active="my-profile">基本资料</a></li>
+          <li class="nav-item"><a class="nav-link" href="/my/password" data-active="my-password">修改密码</a></li>
+          <li class="nav-item"><a class="nav-link" href="/my/avatar" data-active="my-avatar">修改头像</a></li>
+        </ul>
+      </div>
+      <div class="card-body">
+        <div class="col-lg-6 mx-auto">
+          <div class="form-group text-center">
+            <img id="avatar_img" class="logo-4" src="{{if .User.AvatarURL}}{{.User.AvatarURL}}{{else}}/view/img/avatar.png{{end}}">
+          </div>
+          <div class="form-group custom-file">
+            <input type="file" id="avatar_upload" accept="image/gif,image/jpeg,image/png,image/jpg,image/bmp" class="upload custom-file-input" />
+            <label class="custom-file-label" for="avatar_upload">Choose file</label>
+          </div>
+          <div class="progress mt-2">
+            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%" id="avatar_progress"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{{include "layout/footer.html" .}}

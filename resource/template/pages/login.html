@@ -1,0 +1,37 @@
+{{include "layout/header.html" .}}
+<div class="row">
+  <div class="col-lg-6 mx-auto">
+    <div class="card">
+      <div class="card-header">用户登录</div>
+      <div class="card-body ajax_modal_body">
+        <form action="/login" method="post" id="form">
+          <div class="form-group input-group">
+            <div class="input-group-prepend">
+              <span class="input-group-text"><i class="icon icon-user icon-fw"></i></span>
+            </div>
+            <input type="text" class="form-control" placeholder="邮箱 / 用户名" id="email" name="email" autocomplete="username">
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="form-group input-group">
+            <div class="input-group-prepend">
+              <span class="input-group-text"><i class="icon icon-lock icon-fw"></i></span>
+            </div>
+            <input type="password" class="form-control" placeholder="密码" id="password" name="password" autocomplete="current-password">
+            <div class="invalid-feedback"></div>
+          </div>
+          <div class="form-group">
+            <button type="submit" class="btn btn-primary btn-block" id="submit" data-loading-text="正在提交...">登录</button>
+          </div>
+          <div class="media">
+            <div></div>
+            <div class="media-body text-right">
+              {{if .Site.UserCreateOn}}<a href="/register" class="text-muted"><small>用户注册</small></a>{{end}}
+              {{if .Site.UserResetpwOn}}<a href="/reset-password" class="text-muted ml-3"><small>忘记密码</small></a>{{end}}
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{include "layout/footer.html" .}}

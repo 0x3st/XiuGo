@@ -1,0 +1,35 @@
+# IDE / OS
+.buildpath
+.hgignore.swp
+.project
+.orig
+.swp
+.idea/
+.settings/
+.vscode/
+**/.DS_Store
+
+# Build
+bin/
+**/bin/
+gf
+main
+main.exe
+output/
+manifest/output/
+temp/
+temp.yaml
+*.exe
+*.test
+/tmp/
+
+# Local secrets & runtime config
+**/config/config.yaml
+hack/config.yaml
+.env
+.env.*
+
+# Local data / uploads (if ever placed under repo)
+upload/
+**/upload/tmp/
+*.log

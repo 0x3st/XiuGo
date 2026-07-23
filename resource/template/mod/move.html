@@ -1,0 +1,47 @@
+<div class="card">
+  <div class="card-header">移动主题</div>
+  <div class="card-body ajax-body">
+    <form action="/mod/move" method="post" id="mod_move_form">
+      <div class="form-group row">
+        <label class="col-4 form-control-label text-right">总共：</label>
+        <div class="col-8"><span class="total font-weight-bold text-danger"></span> 篇</div>
+      </div>
+      <div class="form-group row">
+        <label class="col-4 form-control-label text-right">目标版块：</label>
+        <div class="col-8">
+          <select class="custom-select" name="newfid">
+            {{range .Forums}}<option value="{{.Fid}}">{{.Name}}</option>{{end}}
+          </select>
+        </div>
+      </div>
+      <div class="form-group row">
+        <label class="col-4"></label>
+        <div class="col-8">
+          <button type="submit" class="btn btn-primary" data-loading-text="正在提交...">确定</button>
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<script ajax-eval="true">
+var args = args || {jmodal: null, callback: null, arg: null};
+var jmodal = args.jmodal, arg = args.arg;
+var tidarr = $(arg).find('input[name="modtid"]').checked();
+var jform = $('#mod_move_form');
+var jsubmit = jform.find('button[type="submit"]');
+jform.find('span.total').text(tidarr.length);
+jform.on('submit', function() {
+  jform.reset(); jsubmit.button('loading');
+  var postdata = jform.serializeObject();
+  postdata.tidarr = tidarr;
+  $.xpost(jform.attr('action'), postdata, function(code, message) {
+    if(code == 0) {
+      jsubmit.button(message);
+      setTimeout(function(){ if(jmodal) jmodal.modal('dispose'); window.location.reload(); }, 1000);
+    } else { alert(message); jsubmit.button('reset'); }
+  });
+  return false;
+});
+jform.find('button[type="button"]').on('click', function(){ if(jmodal) jmodal.modal('dispose'); });
+</script>
