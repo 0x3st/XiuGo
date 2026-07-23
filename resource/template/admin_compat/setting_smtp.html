@@ -6,7 +6,7 @@
   </tbody></table></div><p><a role="button" class="btn row_add">[+]增加一行</a></p>
     <div class="form-group row mt-3"><label class="col-sm-2 col-form-label">测试收件邮箱</label><div class="col-sm-6"><input class="form-control" name="test_email" placeholder="保存后向该邮箱发测试信（可留空）"></div></div>
     <p class="text-center"><button class="btn btn-primary" id="submit" style="width:10rem">确定</button></p></form>
-    <p class="text-muted small">注：SMTP 仍写入原版 <code>conf/smtp.conf.php</code>（与本地上传目录配置同源）。留空测试邮箱则只保存不发送。</p></div></div>
+    <p class="text-muted small">注：SMTP 保存在数据库 <code>bbs_kv</code>（键 <code>xiugo_smtp</code>）。首次启动若存在旧 <code>smtp.conf.php</code> 会自动导入。留空测试邮箱则只保存不发送。</p></div></div>
 </div></div>
 {{include "admin_compat/footer.html" .}}
 <script>

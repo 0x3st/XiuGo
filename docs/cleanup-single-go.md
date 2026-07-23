@@ -41,3 +41,11 @@
 
 - 日常只启动 `xiuno-go/start-local.sh`（8081）  
 - 需要肉眼对照 DOM 时再临时开 PHP `8080`  
+
+
+## 配置存储（已切换）
+
+- 站点设置：`bbs_kv.k = xiugo_site`（JSON）
+- SMTP：`bbs_kv.k = xiugo_smtp`（JSON）
+- 首次启动可从旧 `conf.php` / `smtp.conf.php` **导入一次**，之后后台保存只写数据库
+- `xiuno.uploadPath` 仍在 `config.yaml`；`phpRoot` 可选，仅用于导入遗留配置

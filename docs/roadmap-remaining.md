@@ -15,7 +15,7 @@
 
 | 优先级 | 项 | 说明 |
 |--------|-----|------|
-| 高 | 配置迁出 conf.php | 站名/SMTP/runlevel → yaml，去 phpRoot |
+| 高 | ~~配置迁出 conf.php~~ | **站点/SMTP 已入 bbs_kv**；uploadPath 在 yaml；phpRoot 仅可选导入 |
 | 高 | 后台路由单一化 | 只保留 `/admin/*` 或只保留 `?*.htm` |
 | 中 | 全站搜索页 | 原版核心几乎无独立搜索；可做 subject LIKE |
 | 中 | 主题楼层锚点与“高级回帖”附件 | 体验打磨 |

@@ -16,6 +16,7 @@ import (
 
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/gogf/gf/v2/frame/g"
 
 	"github.com/0x3st/XiuGo/internal/dao"
 	"github.com/0x3st/XiuGo/internal/model/do"
@@ -33,11 +34,17 @@ func (s *Service) listPageSize(ctx context.Context) int {
 	if n := s.phpConfInt(ctx, "pagesize"); n > 0 {
 		return n
 	}
+	if n := g.Cfg().MustGet(ctx, "xiuno.pagesize", 20).Int(); n > 0 {
+		return n
+	}
 	return 20
 }
 
 func (s *Service) postListPageSize(ctx context.Context) int {
 	if n := s.phpConfInt(ctx, "postlist_pagesize"); n > 0 {
+		return n
+	}
+	if n := g.Cfg().MustGet(ctx, "xiuno.postlistPagesize", 100).Int(); n > 0 {
 		return n
 	}
 	return 100
@@ -109,9 +116,12 @@ func (s *Service) HomePaged(ctx context.Context, viewer view.User, page int) (fo
 	}
 	pageSize := s.listPageSize(ctx)
 	// Home order follows conf order_default (tid|lastpid).
-	order := "lastpid"
-	if s.phpConfString(ctx, "order_default") == "tid" {
-		order = "tid"
+	order := s.phpConfString(ctx, "order_default")
+	if order == "" {
+		order = g.Cfg().MustGet(ctx, "xiuno.orderDefault", "lastpid").String()
+	}
+	if order != "tid" {
+		order = "lastpid"
 	}
 	threads, total, err := s.listThreads(ctx, 0, page, pageSize, order)
 	if err != nil {

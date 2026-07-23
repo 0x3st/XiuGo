@@ -1,6 +1,9 @@
 package bbs
 
 import (
+	"errors"
+	"database/sql"
+	"encoding/json"
 	"context"
 	"crypto/md5"
 	"fmt"
@@ -42,11 +45,15 @@ func (s *Service) VerifyAdminPassword(ctx context.Context, uid uint, browserPass
 
 func ApplyOriginalTimezone(ctx context.Context) error {
 	service := New()
-	content, err := os.ReadFile(filepath.Join(service.phpRoot(ctx), "conf", "conf.php"))
-	if err != nil {
-		return gerror.Wrap(err, "读取 Xiuno 时区配置失败")
+	name := g.Cfg().MustGet(ctx, "xiuno.timezone", "").String()
+	if name == "" {
+		content, err := os.ReadFile(filepath.Join(service.phpRoot(ctx), "conf", "conf.php"))
+		if err != nil {
+			// No legacy conf and no yaml timezone — keep process default.
+			return nil
+		}
+		name = phpConfigString(content, "timezone")
 	}
-	name := phpConfigString(content, "timezone")
 	if name == "" {
 		return nil
 	}
@@ -81,7 +88,7 @@ func (s *Service) OriginalAdminDashboard(ctx context.Context, clientIP string) (
 	if result.Onlines < 1 {
 		result.Onlines = 1
 	}
-	result.DiskFreeSpace = diskFreeSpace(s.phpRoot(ctx))
+	result.DiskFreeSpace = diskFreeSpace(s.uploadRoot(ctx))
 	result.OS = runtime.GOOS
 	result.WebServer = "GoFrame HTTP Server"
 	result.GoVersion = runtime.Version()
@@ -97,60 +104,99 @@ func (s *Service) OriginalAdminDashboard(ctx context.Context, clientIP string) (
 	return result, nil
 }
 
+const (
+	kvSiteSettings = "xiugo_site"
+	kvSMTPAccounts = "xiugo_smtp"
+)
+
 func (s *Service) SiteSettings(ctx context.Context) (settings view.SiteSettings, err error) {
-	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
-	if err != nil {
-		return settings, gerror.Wrap(err, "读取 Xiuno 配置失败")
+	if raw, ok, loadErr := s.loadKV(ctx, kvSiteSettings); loadErr != nil {
+		return settings, loadErr
+	} else if ok && raw != "" {
+		if err = json.Unmarshal([]byte(raw), &settings); err != nil {
+			return settings, gerror.Wrap(err, "解析站点配置失败")
+		}
+		return settings, nil
 	}
-	settings.Sitename = phpConfigString(content, "sitename")
-	settings.Sitebrief = phpConfigString(content, "sitebrief")
-	settings.Runlevel = phpConfigInt(content, "runlevel")
-	settings.RunlevelReason = phpConfigString(content, "runlevel_reason")
-	settings.UserCreateOn = phpConfigInt(content, "user_create_on")
-	settings.UserCreateEmailOn = phpConfigInt(content, "user_create_email_on")
-	settings.UserResetpwOn = phpConfigInt(content, "user_resetpw_on")
-	settings.Lang = phpConfigString(content, "lang")
+	// First run: import from legacy conf.php if present, else yaml defaults.
+	settings = s.bootstrapSiteSettingsFromLegacy(ctx)
+	if err = s.saveKV(ctx, kvSiteSettings, settings); err != nil {
+		return settings, err
+	}
 	return settings, nil
 }
 
-func (s *Service) UpdateSiteSettings(ctx context.Context, settings view.SiteSettings) error {
+func (s *Service) bootstrapSiteSettingsFromLegacy(ctx context.Context) view.SiteSettings {
+	var settings view.SiteSettings
 	path := filepath.Join(s.phpRoot(ctx), "conf", "conf.php")
-	content, err := os.ReadFile(path)
-	if err != nil {
-		return gerror.Wrap(err, "读取 Xiuno 配置失败")
+	if content, err := os.ReadFile(path); err == nil {
+		settings.Sitename = phpConfigString(content, "sitename")
+		settings.Sitebrief = phpConfigString(content, "sitebrief")
+		settings.Runlevel = phpConfigInt(content, "runlevel")
+		settings.RunlevelReason = phpConfigString(content, "runlevel_reason")
+		settings.UserCreateOn = phpConfigInt(content, "user_create_on")
+		settings.UserCreateEmailOn = phpConfigInt(content, "user_create_email_on")
+		settings.UserResetpwOn = phpConfigInt(content, "user_resetpw_on")
+		settings.Lang = phpConfigString(content, "lang")
 	}
-	values := []struct {
-		key     string
-		literal string
-	}{
-		{"sitename", phpQuote(settings.Sitename)},
-		{"sitebrief", phpQuote(settings.Sitebrief)},
-		{"runlevel", strconv.Itoa(settings.Runlevel)},
-		{"user_create_on", strconv.Itoa(settings.UserCreateOn)},
-		{"user_create_email_on", strconv.Itoa(settings.UserCreateEmailOn)},
-		{"user_resetpw_on", strconv.Itoa(settings.UserResetpwOn)},
-		{"lang", phpQuote(settings.Lang)},
+	if settings.Sitename == "" {
+		settings.Sitename = g.Cfg().MustGet(ctx, "xiuno.sitename", "XiuGo").String()
 	}
-	for _, value := range values {
-		var replaced bool
-		content, replaced = replacePHPConfigLiteral(content, value.key, value.literal)
-		if !replaced {
-			return gerror.Newf("Xiuno 配置缺少字段：%s", value.key)
+	if settings.Sitebrief == "" {
+		settings.Sitebrief = g.Cfg().MustGet(ctx, "xiuno.sitebrief", "").String()
+	}
+	if settings.Lang == "" {
+		settings.Lang = g.Cfg().MustGet(ctx, "xiuno.lang", "zh-cn").String()
+	}
+	// If conf missing entirely, open site for all by default.
+	if _, err := os.Stat(path); err != nil {
+		if settings.Runlevel == 0 {
+			settings.Runlevel = g.Cfg().MustGet(ctx, "xiuno.runlevel", 5).Int()
+		}
+		if settings.UserCreateOn == 0 && g.Cfg().MustGet(ctx, "xiuno.userCreateOn", 1).Int() == 1 {
+			settings.UserCreateOn = 1
 		}
 	}
-	if err = writeFileAtomic(path, content); err != nil {
-		return gerror.Wrap(err, "保存 Xiuno 配置失败")
+	return settings
+}
+
+func (s *Service) UpdateSiteSettings(ctx context.Context, settings view.SiteSettings) error {
+	if strings.TrimSpace(settings.Sitename) == "" {
+		return gerror.New("站点名称不能为空")
 	}
-	return nil
+	if settings.Runlevel < 0 || settings.Runlevel > 5 {
+		return gerror.New("运行级别不正确")
+	}
+	if settings.Lang == "" {
+		settings.Lang = "zh-cn"
+	}
+	return s.saveKV(ctx, kvSiteSettings, settings)
 }
 
 func (s *Service) SMTPAccounts(ctx context.Context) ([]view.SMTPAccount, error) {
+	if raw, ok, err := s.loadKV(ctx, kvSMTPAccounts); err != nil {
+		return nil, err
+	} else if ok && raw != "" {
+		var accounts []view.SMTPAccount
+		if err = json.Unmarshal([]byte(raw), &accounts); err != nil {
+			return nil, gerror.Wrap(err, "解析 SMTP 配置失败")
+		}
+		if accounts == nil {
+			accounts = []view.SMTPAccount{}
+		}
+		return accounts, nil
+	}
+	accounts := s.bootstrapSMTPFromLegacy(ctx)
+	if err := s.saveKV(ctx, kvSMTPAccounts, accounts); err != nil {
+		return accounts, err
+	}
+	return accounts, nil
+}
+
+func (s *Service) bootstrapSMTPFromLegacy(ctx context.Context) []view.SMTPAccount {
 	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "smtp.conf.php"))
 	if err != nil {
-		if os.IsNotExist(err) {
-			return []view.SMTPAccount{}, nil
-		}
-		return nil, gerror.Wrap(err, "读取 SMTP 配置失败")
+		return []view.SMTPAccount{}
 	}
 	pattern := regexp.MustCompile(`(?s)array\s*\(\s*'email'\s*=>\s*'((?:\\.|[^'])*)',\s*'host'\s*=>\s*'((?:\\.|[^'])*)',\s*'port'\s*=>\s*(?:'((?:\\.|[^'])*)'|(-?\d+)),\s*'user'\s*=>\s*'((?:\\.|[^'])*)',\s*'pass'\s*=>\s*'((?:\\.|[^'])*)',\s*\)`)
 	matches := pattern.FindAllSubmatch(content, -1)
@@ -166,25 +212,50 @@ func (s *Service) SMTPAccounts(ctx context.Context) ([]view.SMTPAccount, error) 
 			User: phpUnescape(string(match[5])), Pass: phpUnescape(string(match[6])),
 		})
 	}
-	return accounts, nil
+	return accounts
 }
 
 func (s *Service) UpdateSMTPAccounts(ctx context.Context, accounts []view.SMTPAccount) error {
-	var builder strings.Builder
-	builder.WriteString("<?php\r\nreturn array (\r\n")
-	for index, account := range accounts {
-		builder.WriteString(fmt.Sprintf("  %d => \r\n  array (\r\n", index))
-		builder.WriteString("    'email' => " + phpQuote(account.Email) + ",\r\n")
-		builder.WriteString("    'host' => " + phpQuote(account.Host) + ",\r\n")
-		builder.WriteString("    'port' => " + strconv.Itoa(account.Port) + ",\r\n")
-		builder.WriteString("    'user' => " + phpQuote(account.User) + ",\r\n")
-		builder.WriteString("    'pass' => " + phpQuote(account.Pass) + ",\r\n")
-		builder.WriteString("  ),\r\n")
+	if accounts == nil {
+		accounts = []view.SMTPAccount{}
 	}
-	builder.WriteString(");\r\n?>")
-	path := filepath.Join(s.phpRoot(ctx), "conf", "smtp.conf.php")
-	if err := writeFileAtomic(path, []byte(builder.String())); err != nil {
-		return gerror.Wrap(err, "保存 SMTP 配置失败")
+	cleaned := make([]view.SMTPAccount, 0, len(accounts))
+	for _, account := range accounts {
+		if strings.TrimSpace(account.Email) == "" && strings.TrimSpace(account.Host) == "" {
+			continue
+		}
+		cleaned = append(cleaned, account)
+	}
+	return s.saveKV(ctx, kvSMTPAccounts, cleaned)
+}
+
+
+func (s *Service) loadKV(ctx context.Context, key string) (value string, ok bool, err error) {
+	var row entity.BbsKv
+	if err = dao.BbsKv.Ctx(ctx).Where(do.BbsKv{K: key}).Scan(&row); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		return "", false, gerror.Wrap(err, "读取配置存储失败")
+	}
+	if row.K == "" {
+		return "", false, nil
+	}
+	return row.V, true, nil
+}
+
+func (s *Service) saveKV(ctx context.Context, key string, value any) error {
+	encoded, err := json.Marshal(value)
+	if err != nil {
+		return gerror.Wrap(err, "序列化配置失败")
+	}
+	var row entity.BbsKv
+	_ = dao.BbsKv.Ctx(ctx).Where(do.BbsKv{K: key}).Scan(&row)
+	if row.K == "" {
+		if _, err = dao.BbsKv.Ctx(ctx).Data(do.BbsKv{K: key, V: string(encoded), Expiry: 0}).Insert(); err != nil {
+			return gerror.Wrap(err, "写入配置存储失败")
+		}
+		return nil
+	}
+	if _, err = dao.BbsKv.Ctx(ctx).Where(do.BbsKv{K: key}).Data(do.BbsKv{V: string(encoded), Expiry: 0}).Update(); err != nil {
+		return gerror.Wrap(err, "更新配置存储失败")
 	}
 	return nil
 }

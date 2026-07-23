@@ -90,7 +90,7 @@ func (s *Service) saveForumIcon(ctx context.Context, fid uint, dataURI string) e
 	if err != nil {
 		return gerror.Wrap(err, "解析板块图标失败")
 	}
-	directory := filepath.Join(s.phpRoot(ctx), "upload", "forum")
+	directory := filepath.Join(s.uploadRoot(ctx), "forum")
 	if err = os.MkdirAll(directory, 0o755); err != nil {
 		return gerror.Wrap(err, "创建板块图标目录失败")
 	}

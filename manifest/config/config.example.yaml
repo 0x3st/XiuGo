@@ -19,6 +19,21 @@ database:
     debug: false
 
 xiuno:
-  # Optional: path to Xiuno BBS 4.x tree for conf.php / plugins / shared upload.
-  phpRoot: "../xiuno-bbs"
-  uploadPath: "../xiuno-bbs/upload"
+  # Upload directory for avatars, attachments, forum icons (required).
+  uploadPath: "./upload"
+  # Optional legacy Xiuno tree for one-time import of conf.php / smtp.conf.php.
+  # Leave empty or omit after settings have been imported into bbs_kv.
+  phpRoot: ""
+  # Defaults used when bbs_kv has no xiugo_site yet and conf.php is absent.
+  sitename: "XiuGo"
+  sitebrief: ""
+  runlevel: 5
+  lang: "zh-cn"
+  userCreateOn: 1
+  userCreateEmailOn: 0
+  userResetpwOn: 0
+  timezone: "Asia/Shanghai"
+  onlineHoldTime: 3600
+  pagesize: 20
+  postlistPagesize: 100
+  orderDefault: "lastpid"

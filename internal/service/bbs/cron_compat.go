@@ -110,17 +110,17 @@ func (s *Service) setPHPRuntimeValues(ctx context.Context, values map[string]int
 }
 
 func (s *Service) originalOnlineHoldSeconds(ctx context.Context) int {
-	content, err := os.ReadFile(filepath.Join(s.phpRoot(ctx), "conf", "conf.php"))
-	if err == nil {
-		if seconds := phpConfigInt(content, "online_hold_time"); seconds > 0 {
-			return seconds
-		}
+	if seconds := s.phpConfInt(ctx, "online_hold_time"); seconds > 0 {
+		return seconds
+	}
+	if seconds := g.Cfg().MustGet(ctx, "xiuno.onlineHoldTime", 3600).Int(); seconds > 0 {
+		return seconds
 	}
 	return 3600
 }
 
 func (s *Service) cleanupOriginalTempAttachments(ctx context.Context, now time.Time) error {
-	directory := filepath.Join(s.phpRoot(ctx), "upload", "tmp")
+	directory := filepath.Join(s.uploadRoot(ctx), "tmp")
 	entries, err := os.ReadDir(directory)
 	if os.IsNotExist(err) {
 		return nil
