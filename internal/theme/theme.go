@@ -52,9 +52,7 @@ func Init(ctx context.Context, themesRoot string, loadActive func(context.Contex
 	if themesRoot == "" {
 		themesRoot = "resource/themes"
 	}
-	if abs, err := filepath.Abs(themesRoot); err == nil {
-		themesRoot = abs
-	}
+	themesRoot = resolveExistingDir(themesRoot)
 	m := global
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -191,4 +189,35 @@ func (m *Manager) ResolveTemplate(rel string) string {
 func (m *Manager) HasTemplateOverride(rel string) bool {
 	resolved := m.ResolveTemplate(rel)
 	return resolved != rel && filepath.IsAbs(resolved)
+}
+
+func resolveExistingDir(p string) string {
+	candidates := []string{p}
+	if abs, err := filepath.Abs(p); err == nil {
+		candidates = append(candidates, abs)
+	}
+	// When binary is started outside module root, still find ./resource/themes relative to cwd parents.
+	if wd, err := os.Getwd(); err == nil {
+		dir := wd
+		for i := 0; i < 6; i++ {
+			candidates = append(candidates, filepath.Join(dir, "resource", "themes"))
+			parent := filepath.Dir(dir)
+			if parent == dir {
+				break
+			}
+			dir = parent
+		}
+	}
+	for _, c := range candidates {
+		if st, err := os.Stat(c); err == nil && st.IsDir() {
+			if abs, err := filepath.Abs(c); err == nil {
+				return abs
+			}
+			return c
+		}
+	}
+	if abs, err := filepath.Abs(p); err == nil {
+		return abs
+	}
+	return p
 }

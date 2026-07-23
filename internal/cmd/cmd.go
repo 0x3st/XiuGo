@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"os"
 
 	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
 	"github.com/gogf/gf/v2/frame/g"
@@ -43,7 +44,9 @@ var (
 			}
 			// Theme static files: /themes/<id>/...
 			if root := theme.Global().Root(); root != "" {
-				s.AddStaticPath("/themes", root)
+				if st, err := os.Stat(root); err == nil && st.IsDir() {
+					s.AddStaticPath("/themes", root)
+				}
 			}
 			s.Group("/", func(group *ghttp.RouterGroup) {
 				controller.Bind(group)
