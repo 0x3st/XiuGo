@@ -157,30 +157,34 @@ jmobile_collapsing_bavbar.on('touchmove', function(e) {
 
 
 
-// 删除帖子 / Delete post
+// 删除帖子 / Delete post（只确认一次；成功时优先用服务端返回的跳转地址）
 $('body').on('click', '.post_delete', function() {
-	var jthis = $(this);
-	var href = jthis.data('href');
-	var isfirst = jthis.attr('isfirst');
-	if(window.confirm(lang.confirm_delete)) {
-		$.xpost(href, function(code, message) {
-			var isfirst = jthis.attr('isfirst');
-			if(code == 0) {
-				if(isfirst == '1') {
-					$.location('<?php echo url("forum-$fid");?>');
-				} else {
-					// 删掉楼层
-					jthis.parents('.post').remove();
-					// 回复数 -1
-					var jposts = $('.posts');
-					jposts.html(xn.intval(jposts.html()) - 1);
-				}
-			} else {
-				$.alert(message);
-			}
-		});
-	}
-	return false;
+var jthis = $(this);
+var href = jthis.data('href');
+var isfirst = jthis.attr('isfirst');
+if(!href) return false;
+if(!window.confirm(lang.confirm_delete || '确定删除吗？')) return false;
+$.xpost(href, {}, function(code, message) {
+if(code == 0) {
+if(isfirst == '1') {
+// XiuGo：DeletePost 成功 message 为 /thread/tid 或 /
+if(typeof message === 'string' && message.length && message.charAt(0) === '/') {
+window.location.href = message;
+} else if(typeof $.location === 'function') {
+$.location('/');
+} else {
+window.location.href = '/';
+}
+} else {
+jthis.parents('.post').remove();
+var jposts = $('.posts');
+if(jposts.length) jposts.html(xn.intval(jposts.html()) - 1);
+}
+} else {
+$.alert(message);
+}
+});
+return false;
 });
 
 // 引用 / Quote

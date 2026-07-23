@@ -419,18 +419,6 @@ $('.post_reply').on('click', function() {
 	$('input[name="quotepid"]').val(pid);
 	$('#message').focus();
 });
-$('.post_delete').on('click', function() {
-	var href = $(this).data('href');
-	if(!href) return;
-	if(!window.confirm('确定删除吗？')) return;
-	$.xpost(href, {}, function(code, message) {
-		if(code == 0) {
-			window.location.href = message || '/';
-		} else {
-			alert(message);
-		}
-	});
-});
 var jmessage = $('#message');
 if (jmessage.length) {
 	jmessage.on('focus', function() {if(jmessage.t) { clearTimeout(jmessage.t); jmessage.t = null; } jmessage.css('height', '8rem'); });
