@@ -674,6 +674,9 @@ func (s *Service) CreateThread(
 		return 0, err
 	}
 	_ = plugin.Global().Fire(ctx, plugin.HookThreadCreated, &plugin.ThreadCreatedEvent{Tid: uint(threadID), Fid: fid, Uid: uid})
+	if plugin.Global().IsEnabled("credits_admin") {
+		_ = s.AddUserCredits(ctx, uid, 2) // 发主题 +2
+	}
 	return uint(threadID), nil
 }
 
@@ -755,6 +758,9 @@ func (s *Service) Reply(
 		return 0, err
 	}
 	_ = plugin.Global().Fire(ctx, plugin.HookReplyCreated, &plugin.ReplyCreatedEvent{Tid: tid, Pid: uint(postID), Uid: uid})
+	if plugin.Global().IsEnabled("credits_admin") {
+		_ = s.AddUserCredits(ctx, uid, 1) // 回帖 +1
+	}
 	return uint(postID), nil
 }
 
@@ -952,6 +958,47 @@ func (s *Service) DeletePost(ctx context.Context, pid, uid uint) (tid uint, err 
 	return post.Tid, nil
 }
 
+// AdjustUserCredits sets credits to an absolute value (admin tool).
+func (s *Service) AdjustUserCredits(ctx context.Context, uid uint, credits int) error {
+	if uid == 0 {
+		return gerror.New("用户不存在")
+	}
+	if credits < 0 {
+		return gerror.New("积分不能为负数")
+	}
+	var user entity.BbsUser
+	if err := dao.BbsUser.Ctx(ctx).Where(do.BbsUser{Uid: uid}).Scan(&user); err != nil {
+		return gerror.Wrap(err, "读取用户失败")
+	}
+	if user.Uid == 0 {
+		return gerror.New("用户不存在")
+	}
+	if _, err := dao.BbsUser.Ctx(ctx).Where(do.BbsUser{Uid: uid}).Data(do.BbsUser{Credits: credits}).Update(); err != nil {
+		return gerror.Wrap(err, "更新积分失败")
+	}
+	return nil
+}
+
+// AddUserCredits adds delta (can be negative); floor at 0.
+func (s *Service) AddUserCredits(ctx context.Context, uid uint, delta int) error {
+	if uid == 0 || delta == 0 {
+		return nil
+	}
+	var user entity.BbsUser
+	if err := dao.BbsUser.Ctx(ctx).Where(do.BbsUser{Uid: uid}).Scan(&user); err != nil {
+		return err
+	}
+	if user.Uid == 0 {
+		return nil
+	}
+	next := user.Credits + delta
+	if next < 0 {
+		next = 0
+	}
+	_, err := dao.BbsUser.Ctx(ctx).Where(do.BbsUser{Uid: uid}).Data(do.BbsUser{Credits: next}).Update()
+	return err
+}
+
 func (s *Service) Profile(ctx context.Context, uid uint) (profile view.UserProfile, err error) {
 	if uid == 0 {
 		return profile, gerror.New("用户不存在")
@@ -968,7 +1015,7 @@ func (s *Service) Profile(ctx context.Context, uid uint) (profile view.UserProfi
 	profile = view.UserProfile{
 		Uid: record.Uid, Gid: record.Gid, Username: record.Username, Email: record.Email,
 		GroupName: group.Name, Avatar: record.Avatar, AvatarURL: avatarURL(record.Uid, record.Avatar),
-		Threads: record.Threads, Posts: record.Posts,
+		Threads: record.Threads, Posts: record.Posts, Credits: record.Credits, Golds: record.Golds,
 		CreateDate: record.CreateDate, LoginDate: record.LoginDate,
 		CreateTime: formatUnixDate(record.CreateDate), LoginTime: formatUnixDate(record.LoginDate),
 	}

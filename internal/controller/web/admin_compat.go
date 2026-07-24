@@ -127,6 +127,50 @@ func (c *Controller) AdminRuntime(r *ghttp.Request) {
 }
 
 
+
+// AdminCredits is the credits management UI (used by credits_admin plugin).
+func (c *Controller) AdminCredits(r *ghttp.Request) {
+	user, ok := c.requireVerifiedAdmin(r)
+	if !ok {
+		return
+	}
+	if !plugin.Global().IsEnabled("credits_admin") {
+		r.Response.WriteStatus(http.StatusForbidden, "请先在「扩展」中启用「积分系统」插件")
+		return
+	}
+	if r.Method == http.MethodPost {
+		uid := r.GetForm("uid").Uint()
+		credits := r.GetForm("credits").Int()
+		if err := c.service.AdjustUserCredits(r.Context(), uid, credits); err != nil {
+			c.writeXiunoMessage(r, -1, err.Error())
+			return
+		}
+		c.writeXiunoMessage(r, 0, "积分已更新")
+		return
+	}
+	users, err := c.service.AdminUsers(r.Context(), r.GetQuery("keyword").String())
+	if err != nil {
+		c.fail(r, err)
+		return
+	}
+	params := gview.Params{
+		"Title": "积分管理", "Active": "credits", "User": user,
+		"Users": users, "Keyword": r.GetQuery("keyword").String(),
+		"ShowUserCredits": true,
+	}
+	ev := &plugin.AdminRenderEvent{Template: "admin/credits.html", Params: map[string]any{}}
+	for k, v := range params {
+		ev.Params[k] = v
+	}
+	_ = plugin.Global().Fire(r.Context(), plugin.HookAdminRender, ev)
+	for k, v := range ev.Params {
+		params[k] = v
+	}
+	if err := r.Response.WriteTpl("admin/credits.html", params); err != nil {
+		c.fail(r, err)
+	}
+}
+
 func (c *Controller) AdminThemes(r *ghttp.Request) {
 	user, ok := c.requireVerifiedAdmin(r)
 	if !ok {
@@ -170,7 +214,7 @@ func (c *Controller) AdminPlugins(r *ghttp.Request) {
 		msg := "已更新"
 		if enable {
 			if id == "credits_admin" {
-				msg = "已启用：请打开「用户」/admin/users 查看积分列（数值来自 bbs_user.credits，默认可能为 0）"
+				msg = "已启用积分系统：前台 /my 与 /user/x 显示积分；/admin/users 显示积分列；/admin/credits 可管理。发帖+2 回帖+1"
 			} else if id == "devtools" {
 				msg = "已启用：打开任意前台页面，查看 HTML 源码底部的 xiugo-dev 注释"
 			} else if id == "hello" {

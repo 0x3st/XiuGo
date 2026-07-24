@@ -31,6 +31,7 @@
           <div class="col-md-6">
             <span class="text-muted">主题数：</span>{{.Profile.Threads}}
             <br><span class="text-muted">帖子数：</span>{{.Profile.Posts}}
+            {{if .ShowUserCredits}}<br><span class="text-muted">积分：</span><strong class="text-primary">{{.Profile.Credits}}</strong>{{end}}
           </div>
           <div class="col-md-6">
             <span class="text-muted">用户组：</span>{{.Profile.GroupName}}
@@ -76,7 +77,7 @@
           </div>
           <div class="col-4 col-sm-5">
             <span class="text-muted">主题数：</span>{{.Profile.Threads}}<br>
-            <span class="text-muted">帖子数：</span>{{.Profile.Posts}}
+            <span class="text-muted">帖子数：</span>{{.Profile.Posts}}{{if $.ShowUserCredits}}<br><span class="text-muted">积分：</span><strong class="text-primary">{{.Profile.Credits}}</strong>{{end}}
           </div>
           <div class="col-auto">
             <span class="text-muted">用户组：</span>{{.Profile.GroupName}}<br>

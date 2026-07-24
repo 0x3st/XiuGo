@@ -169,6 +169,12 @@ func (m *Manager) List() []Info {
 	return out
 }
 
+func (m *Manager) IsEnabled(id string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.enabled[id]
+}
+
 func (m *Manager) EnabledMap() map[string]bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()

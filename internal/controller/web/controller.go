@@ -61,6 +61,7 @@ func (c *Controller) Bind(group *ghttp.RouterGroup) {
 	group.GET("/admin/runtime", c.AdminRuntime)
 	group.ALL("/admin/themes", c.AdminThemes)
 	group.ALL("/admin/plugins", c.AdminPlugins)
+	group.ALL("/admin/credits", c.AdminCredits)
 	group.GET("/admin/threads", c.AdminThreads)
 	group.POST("/admin/thread/:tid/close", c.AdminThreadClose)
 	group.POST("/admin/thread/:tid/delete", c.AdminThreadDelete)
@@ -182,6 +183,9 @@ func (c *Controller) renderPage(r *ghttp.Request, template string, params gview.
 		Params:   map[string]any{},
 	}
 	_ = plugin.Global().Fire(r.Context(), plugin.HookPageRender, ev)
+	for k, v := range ev.Params {
+		params[k] = v
+	}
 	params["PluginFooterHTML"] = htmltemplate.HTML(ev.FooterHTML)
 	if len(ev.ExtraCSS) > 0 {
 		params["PluginCSS"] = ev.ExtraCSS

@@ -10,18 +10,22 @@ import (
 func init() {
 	plugin.Register(&CreditsAdmin{})
 	plugin.On("credits_admin", plugin.HookAdminRender, onAdminRenderCredits)
+	plugin.On("credits_admin", plugin.HookPageRender, onPageRenderCredits)
 }
 
-// CreditsAdmin shows bbs_user.credits on admin user lists when enabled.
+// CreditsAdmin is the credits feature pack:
+// - front profile /my shows 积分
+// - admin user list shows credits column
+// - (awards wired in core when this plugin is enabled)
 type CreditsAdmin struct{}
 
 func (c *CreditsAdmin) Meta() plugin.Info {
 	return plugin.Info{
 		ID:          "credits_admin",
-		Name:        "User Credits (Admin)",
-		Version:     "1.1.0",
+		Name:        "积分系统",
+		Version:     "2.0.0",
 		Author:      "XiuGo",
-		Description: "后台用户列表显示积分。启用后打开 /admin/users（或兼容用户列表）可见「积分」列。数值为 bbs_user.credits，未做加分规则时多为 0。",
+		Description: "积分插件：个人中心/用户资料显示积分；后台用户列表显示积分；发主题+2、回帖+1。管理：/admin/credits",
 		Builtin:     true,
 	}
 }
@@ -34,10 +38,26 @@ func onAdminRenderCredits(ctx context.Context, event any) error {
 	if !ok || e == nil {
 		return nil
 	}
-	// Modern + compat user list templates
-	if e.Template != "admin/users.html" && !strings.Contains(e.Template, "user_list.html") {
+	if e.Template != "admin/users.html" && !strings.Contains(e.Template, "user_list.html") && e.Template != "admin/credits.html" {
 		return nil
 	}
+	if e.Params == nil {
+		e.Params = map[string]any{}
+	}
+	e.Params["ShowUserCredits"] = true
+	return nil
+}
+
+func onPageRenderCredits(ctx context.Context, event any) error {
+	e, ok := event.(*plugin.PageRenderEvent)
+	if !ok || e == nil {
+		return nil
+	}
+	if e.Template != "pages/user_profile.html" {
+		return nil
+	}
+	// renderPage merges Plugin params only Footer/CSS — ShowUserCredits must be in main params.
+	// PageRenderEvent.Params is separate; controller should merge flags from event.Params too.
 	if e.Params == nil {
 		e.Params = map[string]any{}
 	}

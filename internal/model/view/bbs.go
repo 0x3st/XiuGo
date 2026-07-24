@@ -192,6 +192,8 @@ type UserProfile struct {
 	AvatarURL  string
 	Threads    int
 	Posts      int
+	Credits    int
+	Golds      int
 	CreateDate uint
 	CreateTime string
 	LoginDate  uint

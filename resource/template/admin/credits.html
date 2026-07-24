@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{.Title}}</title>
+<link rel="stylesheet" href="/view/css/bootstrap.css"><link rel="stylesheet" href="/view/css/bootstrap-bbs.css"></head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark"><div class="container"><a class="navbar-brand" href="/admin/">XiuGo</a><div class="navbar-nav mr-auto">
+<a class="nav-item nav-link" href="/admin/">概览</a>
+<a class="nav-item nav-link" href="/admin/users">用户</a>
+<a class="nav-item nav-link active" href="/admin/credits">积分</a>
+<a class="nav-item nav-link" href="/admin/plugins">扩展</a>
+<a class="nav-item nav-link" href="/">前台</a>
+</div><span class="navbar-text">{{.User.Username}}</span></div></nav>
+<main class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h3 class="mb-0">积分管理</h3>
+    <form class="form-inline" method="get"><input class="form-control form-control-sm mr-2" name="keyword" value="{{.Keyword}}" placeholder="用户名或邮箱"><button class="btn btn-sm btn-outline-primary">搜索</button></form>
+  </div>
+  <p class="text-muted small">由扩展「积分系统」提供。发主题 +2、回帖 +1（插件启用时）。此处可手工设定积分绝对值。</p>
+  <div class="card"><div class="table-responsive"><table class="table table-hover mb-0">
+    <thead><tr><th>UID</th><th>用户</th><th>主题/帖</th><th>当前积分</th><th>设为</th></tr></thead>
+    <tbody>
+    {{range .Users}}
+    <tr>
+      <td>{{.Uid}}</td>
+      <td><strong>{{.Username}}</strong><div class="small text-muted">{{.Email}}</div></td>
+      <td>{{.Threads}} / {{.Posts}}</td>
+      <td><span class="badge badge-primary">{{.Credits}}</span></td>
+      <td>
+        <form class="form-inline credits-form" method="post" action="/admin/credits">
+          <input type="hidden" name="uid" value="{{.Uid}}">
+          <input class="form-control form-control-sm mr-2" style="width:6rem" type="number" min="0" name="credits" value="{{.Credits}}">
+          <button class="btn btn-sm btn-outline-primary" type="submit">保存</button>
+        </form>
+      </td>
+    </tr>
+    {{else}}
+    <tr><td colspan="5" class="text-center text-muted py-4">无用户</td></tr>
+    {{end}}
+    </tbody>
+  </table></div></div>
+</main>
+<script src="/view/js/jquery-3.1.0.js"></script>
+<script src="/view/js/xiuno.js"></script>
+<script src="/view/js/form.js"></script>
+<script src="/view/js/bootstrap-plugin.js"></script>
+<script>
+$('.credits-form').on('submit', function(e){
+  e.preventDefault();
+  var f=$(this);
+  $.xpost(f.attr('action'), f.serialize(), function(code, message){
+    if(code==0){ $.alert(message); setTimeout(function(){ location.reload(); }, 400); }
+    else alert(message);
+  });
+  return false;
+});
+</script>
+</body></html>
